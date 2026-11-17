@@ -230,6 +230,26 @@ main>*:nth-child(2){animation-delay:.05s}main>*:nth-child(3){animation-delay:.1s
 .pickhint{margin:0 0 4px;color:var(--accent)!important;animation:rise .5s var(--ease) both}
 .opt.sel .m .serif{color:#F3DFA6}
 .opt.sel{background:linear-gradient(160deg,rgba(232,199,122,.12),var(--card) 65%)}
+
+/* ===== Full-screen map ===== */
+#map{height:100vh!important;height:100dvh!important;bottom:0}
+#map::after{display:none}
+.wrap{padding:0!important;max-width:none}
+main#view{position:relative;z-index:6;background:rgba(10,12,15,.78);backdrop-filter:blur(26px) saturate(1.4);-webkit-backdrop-filter:blur(26px) saturate(1.4);border-top:1px solid var(--line);border-radius:30px 30px 0 0;margin-top:52vh;padding:26px 20px 140px;min-height:48vh;box-shadow:0 -20px 60px rgba(0,0,0,.45)}
+main#view::before{content:'';display:block;width:40px;height:4px;border-radius:9px;background:var(--line);margin:-12px auto 18px}
+#ride{top:50vh!important;background:rgba(12,14,18,.95)!important}
+#ride .wrap{padding:12px 22px calc(22px + env(safe-area-inset-bottom))!important}
+.toast{top:90px!important}
+@media (min-width:900px){
+  main#view{position:fixed;left:24px;top:92px;bottom:24px;width:min(460px,42vw);margin:0;border-radius:28px;border:1px solid var(--line);overflow-y:auto;padding:26px 26px 120px;min-height:0;scrollbar-width:thin}
+  main#view::before{display:none}
+  #ride{left:24px!important;right:auto!important;top:92px!important;bottom:24px!important;width:min(460px,42vw);border-radius:28px;border:1px solid var(--line)}
+  .bar{left:24px;right:auto;bottom:24px;width:min(460px,42vw);padding:16px 26px 22px;border-radius:0 0 28px 28px;background:linear-gradient(transparent,rgba(10,12,15,.95) 40%)}
+  #ride .wrap{padding:18px 26px 26px!important}
+  .mapchip{left:24px;top:24px}
+  .chips{margin:0 -26px;padding-left:26px;padding-right:26px}
+  .hero h1{font-size:3.4em}
+}
 </style>
 </head>
 <body>
@@ -376,7 +396,7 @@ function buildMap(){
   svg.addEventListener('pointermove',e=>{if(!drag)return;cancelAnimationFrame(anim);const r=svg.getBoundingClientRect(),s=vb.w/r.width;vb.x=drag.vb.x-(e.clientX-drag.x)*s;vb.y=drag.vb.y-(e.clientY-drag.y)*s;apply()});
   svg.addEventListener('pointerup',()=>drag=null);
   svg.addEventListener('wheel',e=>{e.preventDefault();zoomBy(e.deltaY>0?1.15:.87)},{passive:false});
-  apply();
+  vb={x:FULL.x,y:FULL.y,w:FULL.w};apply();setTimeout(fitAll,30);
 }
 function zoomBy(f){const cx=vb.x+vb.w/2,cy=vb.y+vb.h/2;flyTo({x:cx-vb.w*f/2,y:cy-vb.h*f/2,w:vb.w*f,h:vb.h*f},350)}
 function apply(){
@@ -390,16 +410,21 @@ function apply(){
   svg.querySelectorAll('.pin').forEach(p=>p.setAttribute('transform',`translate(${p.dataset.x} ${p.dataset.y}) scale(${u})`));
   const tr=$('#train');if(tr)placeTrain(tr.dataset.s,true);
 }
+const isDesk=()=>innerWidth>=900;
+function visFrac(){return isDesk()?{l:Math.min(500,innerWidth*.45)/innerWidth,t:.06,r:90/innerWidth,b:.04}:{l:0,t:.1,r:0,b:.5}}
+function fitBox(x0,y0,x1,y1,pad){const r=svg.getBoundingClientRect(),asp=r.height/r.width||1,v=visFrac(),vw=1-v.l-v.r,vh=1-v.t-v.b;
+  const w=Math.max(x1-x0,40)*(1+2*pad),h=Math.max(y1-y0,40)*(1+2*pad),W=Math.max(w/vw,h/(asp*vh)),H=W*asp,cx=(x0+x1)/2,cy=(y0+y1)/2;
+  flyTo({x:cx-(v.l+vw/2)*W,y:cy-(v.t+vh/2)*H,w:W,exact:1})}
 function flyTo(t,ms=1100){cancelAnimationFrame(anim);const r=svg.getBoundingClientRect(),asp=r.height/r.width||1;
-  if(t.h/t.w>asp){const w=t.h/asp;t.x-=(w-t.w)/2;t.w=w}else{const h=t.w*asp;t.y-=(h-t.h)/2}
+  if(t.exact){}else if(t.h/t.w>asp){const w=t.h/asp;t.x-=(w-t.w)/2;t.w=w}else{const h=t.w*asp;t.y-=(h-t.h)/2}
   const s={...vb},t0=performance.now(),reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const step=n=>{let k=reduce?1:Math.min(1,(n-t0)/ms);k=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
     vb.x=s.x+(t.x-s.x)*k;vb.y=s.y+(t.y-s.y)*k;vb.w=s.w+(t.w-s.w)*k;apply();if(k<1)anim=requestAnimationFrame(step)};
   anim=requestAnimationFrame(step)}
-function fitStations(ids,pad=.22,bottomBias=0){const p=ids.map(xy);const x0=Math.min(...p.map(a=>a[0])),x1=Math.max(...p.map(a=>a[0])),y0=Math.min(...p.map(a=>a[1])),y1=Math.max(...p.map(a=>a[1]));
+function fitStations(ids,pad=.12){const p=ids.map(xy);const x0=Math.min(...p.map(a=>a[0])),x1=Math.max(...p.map(a=>a[0])),y0=Math.min(...p.map(a=>a[1])),y1=Math.max(...p.map(a=>a[1]));return fitBox(x0,y0,x1,y1,pad);
   const w=Math.max(x1-x0,50),h=Math.max(y1-y0,50);const cx=(x0+x1)/2,cy=(y0+y1)/2;
   flyTo({x:cx-w*(.5+pad),y:cy-h*(.5+pad),w:w*(1+2*pad),h:h*(1+2*pad)+bottomBias})}
-function fitAll(){flyTo({...FULL})}
+function fitAll(){fitBox(FULL.x+60,FULL.y+40,FULL.x+FULL.w-60,FULL.y+FULL.h-60,0)}
 function clearRoute(){['#groute','#glab','#gpin'].forEach(q=>$(q).innerHTML='');svg.classList.remove('focus');svg.querySelectorAll('.ln').forEach(l=>l.classList.remove('hl'))}
 function labels(ids){const g=$('#glab');ids.forEach(s=>{const[x,y]=xy(s);const t=el('text',{class:'lab','data-x':x,'data-y':y},g);t.textContent=S[s]});apply()}
 function highlightLine(Ln){clearRoute();svg.classList.add('focus');svg.querySelector(`.ln[data-line="${Ln}"]`).classList.add('hl');const st=LINES[Ln].stops;fitStations(st,.1);labels([st[0],st[st.length-1]])}
@@ -428,7 +453,7 @@ function placeTrain(s,instant){let g=$('#train');
   g.dataset.s=s;const[x,y]=xy(s);const u=parseFloat(svg.style.getPropertyValue('--u'))||1;
   g.style.transition=instant?'none':'';g.style.transform=`translate(${x}px,${y}px) scale(${u})`}
 function removeTrain(){const t=$('#train');if(t)t.remove()}
-function followTrain(s){const[x,y]=xy(s);const w=150;flyTo({x:x-w/2,y:y-w*.45,w,h:w*.9},900)}
+function followTrain(s){const[x,y]=xy(s);fitBox(x-35,y-35,x+35,y+35,0)}
 function arrive(){const d=document.createElement('div');d.className='arrive';document.body.appendChild(d);setTimeout(()=>d.remove(),1900)}
 
 /* ===== Trips ===== */
