@@ -250,12 +250,35 @@ main#view::before{content:'';display:block;width:40px;height:4px;border-radius:9
   .chips{margin:0 -26px;padding-left:26px;padding-right:26px}
   .hero h1{font-size:3.4em}
 }
+
+/* weather */
+#wx{position:absolute;top:calc(64px + env(safe-area-inset-top));right:16px;z-index:2;padding:8px 14px;border-radius:999px;font-size:.78em;font-weight:500;display:inline-flex;align-items:center;gap:8px;animation:rise .6s var(--ease) both}
+.wxi{width:9px;height:9px;border-radius:50%;background:#F3DFA6;box-shadow:0 0 10px #F3DFA6}
+.wxi.rain,.wxi.storm{background:#7FB2FF;box-shadow:0 0 10px #7FB2FF}.wxi.snow{background:#fff;box-shadow:0 0 10px #fff}.wxi.cloud,.wxi.fog{background:#9AA0AA;box-shadow:none}
+#wxfx{position:absolute;inset:0;pointer-events:none;z-index:1;opacity:0;transition:opacity 1.5s}
+[data-wx=rain] #wxfx,[data-wx=storm] #wxfx{opacity:1;background-image:repeating-linear-gradient(104deg,transparent 0 22px,rgba(150,185,235,.09) 22px 23px),repeating-linear-gradient(100deg,transparent 0 37px,rgba(150,185,235,.06) 37px 38px);background-size:220px 220px,300px 300px;animation:rain .7s linear infinite}
+@keyframes rain{to{background-position:-50px 220px,-60px 300px}}
+[data-wx=storm] #map{animation:flash 9s infinite}
+@keyframes flash{0%,93%,100%{filter:none}94%{filter:brightness(1.35)}95%{filter:none}96%{filter:brightness(1.2)}}
+[data-wx=snow] #wxfx{opacity:1;background-image:radial-gradient(1.6px 1.6px at 20% 30%,rgba(255,255,255,.55),transparent),radial-gradient(1.2px 1.2px at 70% 60%,rgba(255,255,255,.45),transparent),radial-gradient(2px 2px at 45% 85%,rgba(255,255,255,.4),transparent);background-size:180px 180px,240px 240px,300px 300px;animation:snow 12s linear infinite}
+@keyframes snow{to{background-position:30px 180px,-40px 240px,20px 300px}}
+[data-wx=cloud] #wxfx,[data-wx=fog] #wxfx{opacity:1;background:radial-gradient(80% 60% at 30% 10%,rgba(160,170,185,.08),transparent),radial-gradient(70% 50% at 80% 30%,rgba(160,170,185,.06),transparent)}
+[data-wx=fog] #wxfx{background:linear-gradient(rgba(170,178,190,.10),rgba(170,178,190,.03))}
+@media (prefers-reduced-motion:reduce){#wxfx{animation:none!important}}
+.eyebrow.near{text-transform:none;letter-spacing:0;font-size:1em;font-weight:400;color:var(--muted)}
+.eyebrow.near b{color:var(--ink);font-weight:600}
+.dm{font-size:.7em;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);border:1px solid var(--line);padding:1px 6px;border-radius:99px;margin-left:4px}
+.foot{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:28px;color:var(--faint);font-size:.82em}
+.textbtn{background:none;min-height:36px;padding:4px 6px;color:var(--muted);font-weight:500;font-size:1em}
+.textbtn:hover{color:var(--accent)}
 </style>
 </head>
 <body>
 <div id="map">
   <div class="mapchip glass serif">Walk<em>With</em>Me</div>
   <span id="net" class="glass eyebrow"><i></i><span>Online</span></span>
+  <span id="wx" class="glass hidden"></span>
+  <div id="wxfx"></div>
   <div class="mapbtns"><button class="glass" id="zin" aria-label="Zoom in">+</button><button class="glass" id="zout" aria-label="Zoom out">−</button><button class="glass" id="zfit" aria-label="Recenter">◎</button></div>
 </div>
 <div class="wrap"><main id="view"></main></div>
@@ -436,8 +459,6 @@ function drawRoute(r,gold=true){clearRoute();svg.classList.add('focus');svg.clas
     el('polyline',{points:pts,class:'rline',stroke:c,pathLength:1,style:`--g:${gold?'#E8C77A':c};animation-delay:${i*.55}s`},g);
     el('polyline',{points:pts,class:'rflow',pathLength:1,style:`animation-delay:0s,${1.4+i*.55}s`},g);
     sg.stops.forEach((s,j)=>{const[x,y]=xy(s);el('circle',{cx:x,cy:y,class:'rst','data-big':(j===0||j===sg.n)?1:''},g)})});
-  const sp=$('#gpin');r.segs.forEach((sg,i)=>sg.stops.forEach((s,j)=>{if(j%2)return;const[x,y]=xy(s);const k=el('g',{class:'pin spark','data-x':x+(Math.random()-.5)*8,'data-y':y+(Math.random()-.5)*8,style:`--d:${(1.6+i*.55+Math.random()*1.5).toFixed(2)}s`},sp);
-    el('path',{d:'M0 -6 L1.4 -1.4 L6 0 L1.4 1.4 L0 6 L-1.4 1.4 L-6 0 L-1.4 -1.4Z',fill:'#fff'},k)}));
   labels([r.segs[0].stops[0],r.segs[r.segs.length-1].stops.slice(-1)[0]]);
   pin(r.segs[0].stops[0],'start');pin(r.segs[r.segs.length-1].stops.slice(-1)[0],'end');
   fitStations(r.segs.flatMap(sg=>sg.stops));apply()}
@@ -523,12 +544,13 @@ function picker(box,val,ph,onPick,key){
 /* ===== Views ===== */
 function setBar(html){const b=$('#bar');if(!html){b.classList.add('hidden');return}$('#barInner').innerHTML=html;b.classList.remove('hidden')}
 let qFrom=null,qTo=null,lastLoc=null;
-function locLabel(loc){const n=nearest(loc.lat,loc.lng,1)[0];return `Current location <span class="muted locname">(${loc.demo?'demo · ':''}near ${esc(S[n.s])})</span>`}
+function nearTxt(loc){const n=nearest(loc.lat,loc.lng,1)[0];return `You're near <b>${esc(S[n.s])}</b>${loc.demo?' <span class="dm">demo</span>':''}`}
+function locLabel(loc){const n=nearest(loc.lat,loc.lng,1)[0];return `Your location <span class="muted locname">(${esc(S[n.s])})</span>`}
 function home(){
   setBar('');
   const on=isOn();
   $('#view').innerHTML=`
-   <div class="hero"><span class="eyebrow ${on?'':'off'}"><i></i>${on?'Saved offline · works underground':'No signal · your map still works'}</span>
+   <div class="hero"><span class="eyebrow near ${on?'':'off'}" id="nearme"><i></i>${lastLoc?nearTxt(lastLoc):'Finding you…'}</span>
      <h1 class="serif">Where <em>to?</em></h1></div>
    <div class="search glass"><div id="fromBox"></div><div id="toBox"></div><button class="swap" id="swap" aria-label="Swap">⇅</button></div>
    <div class="chips">${POPULAR.map((s,i)=>`<button class="chip" data-pop="${s}" style="animation-delay:${200+i*40}ms">${bullet(served[s][0])}${esc(S[s].replace(/–.*/,''))}</button>`).join('')}</div>
@@ -537,13 +559,7 @@ function home(){
      <span class="lines">${r?[...new Set(r.segs.map(g=>g.line))].map(bullet).join(''):''}</span>
      <span class="t"><b>${esc(t.name)}</b><small>${esc(S[t.from])} → ${esc(S[t.to])}</small></span>
      <span class="m">${r?`<span class="serif">${r.mins}</span><small>min</small>`:''}</span></button>`}).join('')}
-   <h2>Comfort</h2>
-   <div class="card">
-     <label class="toggle"><span><b>Larger text</b><br><span class="muted">Easier to read on a moving train</span></span><input class="sw" type="checkbox" id="bigT" ${document.body.classList.contains('big')?'checked':''}></label>
-     <label class="toggle"><span><b>Tunnel mode</b><br><span class="muted">Demo: see the app with zero signal</span></span><input class="sw" type="checkbox" id="tun" ${forceOff?'checked':''}></label>
-     <label class="toggle"><span><b>Spoken alerts</b><br><span class="muted">Hear when your stop is next</span></span><input class="sw" type="checkbox" id="spk" ${speakOn?'checked':''}></label>
-   </div>
-   <p class="muted" style="font-size:.78em;margin-top:22px">Prototype · R Q 1 6 A F L 7 · typical weekday service.</p>`;
+   <div class="foot"><button class="textbtn" id="tun">${forceOff?'Exit tunnel mode':'Preview tunnel mode'}</button><span>·</span><button class="textbtn" id="bigT">${document.body.classList.contains('big')?'Normal text':'Larger text'}</button></div>`;
   const go=async()=>{if(!qTo)return;
     if(qFrom){showOptions(options([{s:qFrom,walk:0}],qTo),qTo,null);return}
     $('#view').insertAdjacentHTML('beforeend','');const fb=$('#fromBox .val');if(fb)fb.innerHTML='<span class="locdot"></span>Finding you…';
@@ -551,16 +567,16 @@ function home(){
   if(qFrom){picker($('#fromBox'),qFrom,'Starting station',v=>{qFrom=v;if(!v)home();else go()},'From')}
   else{$('#fromBox').innerHTML=`<div class="field"><span class="k">From</span><span class="val"><span class="locdot"></span>Current location</span><button class="x" id="pickFrom">Change</button></div>`;
     const lv=$('#fromBox .val');if(lastLoc)lv.innerHTML='<span class="locdot"></span>'+locLabel(lastLoc);
-    else locate().then(l=>{lastLoc=l;const v=$('#fromBox .val');if(v&&!qFrom)v.innerHTML='<span class="locdot"></span>'+locLabel(l)});
+    else locate().then(l=>{lastLoc=l;const v=$('#fromBox .val');if(v&&!qFrom)v.innerHTML='<span class="locdot"></span>'+locLabel(l);const nm=$('#nearme');if(nm)nm.innerHTML='<i></i>'+nearTxt(l);loadWx()});
     $('#pickFrom').onclick=()=>picker($('#fromBox'),null,'Starting station',v=>{qFrom=v;go()},'From')}
   picker($('#toBox'),qTo,'Where are you going?',v=>{qTo=v;go()},'To');
   $('#swap').onclick=()=>{if(!qFrom&&!qTo)return;[qFrom,qTo]=[qTo,qFrom];home();go()};
   document.querySelectorAll('[data-trip]').forEach(b=>b.onclick=()=>showTrip(b.dataset.trip));
 
-  $('#bigT').onchange=e=>{document.body.classList.toggle('big',e.target.checked);store.set('cc_big',e.target.checked)};
-  $('#tun').onchange=e=>{forceOff=e.target.checked;net();if(!forceOff)toast('Back online · live times refreshed');home()};
+  $('#bigT').onclick=()=>{const b=!document.body.classList.contains('big');document.body.classList.toggle('big',b);store.set('cc_big',b);home()};
+  $('#tun').onclick=()=>{forceOff=!forceOff;net();loadWx();toast(forceOff?'Tunnel mode · no signal':'Back online · live times refreshed');home()};
   document.querySelectorAll('[data-pop]').forEach(b=>b.onclick=()=>{qTo=b.dataset.pop;go()});
-  $('#spk').onchange=e=>{speakOn=e.target.checked;store.set('cc_speak',speakOn)};
+
   if(svg){removeTrain();clearRoute();fitAll()}
   scrollTo({top:0});
 }
@@ -577,7 +593,7 @@ function showOptions(opts,to,loc){
   const draw=()=>{
     $('#view').innerHTML=`
      <button class="back" id="bk">← New search</button>
-     <span class="eyebrow" style="display:flex;margin-top:4px"><i></i>${loc?locLabel(loc).replace('Current location','From you'):esc(S[best.from])}</span>
+     <span class="eyebrow" style="display:flex;margin-top:4px"><i></i>${loc?nearTxt(loc):esc(S[best.from])}</span>
      <h1 class="serif title" style="margin-top:10px">To <em style="color:var(--accent)">${esc(S[to])}</em></h1>
      ${loc&&loc.demo?`<div class="card offnote" style="font-size:.85em;padding:12px 16px"><span class="muted">Demo location. On the live site it uses your GPS, which works with no internet.</span></div>`:''}
      <div class="seg" role="tablist"><span class="segpill" style="transform:translateX(${optTab==='best'?0:100}%)"></span>
@@ -701,13 +717,27 @@ function drawRide(first){
 }
 
 function toast(m){const d=document.createElement('div');d.className='toast glass';d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),3200)}
+
+/* ===== Weather outside (Open-Meteo, no key). Saved for when you're underground. ===== */
+function wxKind(c){if(c==null)return null;if(c>=95)return'storm';if((c>=51&&c<=67)||(c>=80&&c<=82))return'rain';if((c>=71&&c<=77)||c===85||c===86)return'snow';if(c===45||c===48)return'fog';if(c>=2&&c<=3)return'cloud';return'clear'}
+const WXL={clear:'Clear',cloud:'Cloudy',fog:'Foggy',rain:'Raining',snow:'Snowing',storm:'Storms'};
+function paintWx(w,stale){const k=w&&wxKind(w.code);document.body.dataset.wx=k||'';const c=$('#wx');if(!w){c.classList.add('hidden');return}
+  c.classList.remove('hidden');const ago=Math.round((Date.now()-w.t)/60000);
+  c.innerHTML=`<i class="wxi ${k}"></i>${w.temp}° · ${WXL[k]} outside${stale&&ago>2?` <span class="muted">· ${ago<60?ago+' min':Math.round(ago/60)+' h'} ago</span>`:''}`}
+async function loadWx(){
+  const demo=/rain|snow|storm|fog/.exec(location.hash);if(demo){paintWx({t:Date.now(),temp:48,code:{rain:63,snow:73,storm:95,fog:45}[demo[0]]});return}
+  const saved=store.get('cc_wx',null);
+  if(!isOn()){paintWx(saved,true);return}
+  try{const l=lastLoc||DEMO_LOC;const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${l.lat.toFixed(3)}&longitude=${l.lng.toFixed(3)}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`);
+    const j=await r.json();const w={t:Date.now(),temp:Math.round(j.current.temperature_2m),code:j.current.weather_code};store.set('cc_wx',w);paintWx(w)}
+  catch(e){paintWx(saved,true)}}
 /* ===== Boot ===== */
 function net(){if($('#arrBox'))refreshArr();const on=isOn();const p=$('#net');p.className='glass eyebrow'+(on?'':' off');p.querySelector('span').textContent=on?'Online':'Offline'}
-addEventListener('online',()=>{net();toast('Back online · live times refreshed')});addEventListener('offline',net);addEventListener('resize',()=>svg&&apply());
+addEventListener('online',()=>{net();loadWx();toast('Back online · live times refreshed')});addEventListener('offline',loadWx);addEventListener('offline',net);addEventListener('resize',()=>svg&&apply());
 if(store.get('cc_big',false))document.body.classList.add('big');
 buildMap();
 $('#zin').onclick=()=>zoomBy(.7);$('#zout').onclick=()=>zoomBy(1.4);$('#zfit').onclick=()=>{ride&&$('#train')?followTrain($('#train').dataset.s):fitAll()};
-net();home();
+net();home();loadWx();setInterval(loadWx,600000);addEventListener('hashchange',loadWx);
 try{if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude/.test(location.host))navigator.serviceWorker.register('./sw.js')}catch(e){}
 </script>
 </body>
