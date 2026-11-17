@@ -180,6 +180,30 @@ main>*:nth-child(2){animation-delay:.05s}main>*:nth-child(3){animation-delay:.1s
 .hero-opt .m .serif{font-size:2.6em}
 .opt.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 12px 30px -14px rgba(232,217,184,.4)}
 @media (prefers-reduced-motion:reduce){.spark{display:none}}
+.goldmode .rst{stroke:#E8C77A}
+.goldmode .rline{animation:draw 1.6s var(--ease) forwards,glowp 2.2s 1.6s ease-in-out infinite}
+.lab.mid{font-weight:500;fill:#C9C3B4;opacity:0;animation:fadein .6s 1.6s forwards}
+.goldmode .lab:not(.mid){fill:#F3DFA6}
+.tlwrap{position:relative}
+.tl{position:relative;display:flex;gap:16px;padding:0 0 18px 0;min-height:44px}
+.tl .rail{position:absolute;left:10px;top:12px;bottom:-12px;width:4px;border-radius:4px;background:linear-gradient(#F6DC94,#D4A84B);box-shadow:0 0 12px rgba(232,199,122,.35)}
+.tl.end .rail{display:none}
+.tl .dot{position:relative;z-index:1;flex:none;width:24px;height:24px;border-radius:50%;background:var(--bg);border:4px solid #E8C77A;margin-top:0;box-shadow:0 0 14px rgba(232,199,122,.45)}
+.tl.key .dot{width:24px;height:24px;background:#E8C77A;border-color:var(--bg);box-shadow:0 0 0 3px #E8C77A,0 0 18px rgba(232,199,122,.6)}
+.tl.end .dot{animation:ping3 2s infinite}
+@keyframes ping3{50%{box-shadow:0 0 0 3px #E8C77A,0 0 0 10px rgba(232,199,122,.15),0 0 22px rgba(232,199,122,.7)}}
+.tl.ride .dot,.tl.mini .dot{width:12px;height:12px;margin:6px 6px 0;border-width:3px}
+.tl.walk .rail{background:repeating-linear-gradient(#8A8F99 0 6px,transparent 6px 12px);box-shadow:none}
+.tl.walk .dot{border-color:#6AA8FF;box-shadow:0 0 12px rgba(106,168,255,.5)}
+.tl.mini{min-height:30px;padding-bottom:8px}.tl.mini b{font-weight:400;color:var(--muted);font-size:.92em}
+.tlt b{font-size:1.06em}.tl.key .tlt b{font-size:1.2em}
+.tls{color:var(--muted);font-size:.9em;margin-top:4px;line-height:1.7}
+.sign.mini{margin-top:0;padding:2px 8px;font-size:.82em}
+.tlmid summary{list-style:none;margin:0;color:inherit}.tlmid summary::-webkit-details-marker{display:none}
+.tlmid summary .tls{color:var(--accent)}
+.toast{position:fixed;left:50%;top:calc(var(--mh) - 70px);transform:translateX(-50%);z-index:40;padding:12px 18px;border-radius:999px;font-weight:600;font-size:.9em;animation:toast 3.2s var(--ease) forwards;white-space:nowrap}
+.toast::before{content:'● ';color:#7EE2A8}
+@keyframes toast{0%{opacity:0;transform:translate(-50%,-10px)}10%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
 </style>
 </head>
 <body>
@@ -309,6 +333,8 @@ const LAND={
 function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
 function buildMap(){
   svg=el('svg',{id:'svgmap',role:'img','aria-label':'NYC subway map'});$('#map').prepend(svg);
+  const defs=el('defs',{},svg);const gg=el('linearGradient',{id:'gold',x1:0,y1:0,x2:1,y2:1},defs);
+  [['0','#FFF1C1'],['.45','#E2B85A'],['1','#F6DC94']].forEach(([o,c])=>el('stop',{offset:o,'stop-color':c},gg));
   const land=el('g',{},svg);for(const k in LAND)el('polygon',{points:poly(LAND[k]),class:'land'},land);
   const lab=el('g',{class:'boro'},svg);
   [['MANHATTAN',40.778,-73.983,-62],['BROOKLYN',40.652,-73.935,0],['QUEENS',40.768,-73.875,0]].forEach(([t,a,b,r])=>{const[x,y]=pj(a,b);const e=el('text',{x,y,transform:`rotate(${r} ${x} ${y})`},lab);e.textContent=t});
@@ -333,7 +359,7 @@ function apply(){
   const u=vb.w/(r.width||400);svg.style.setProperty('--u',u);
   svg.querySelectorAll('.st').forEach(c=>c.setAttribute('r',(c.classList.contains('xf')?3.6:2.2)*u));
   svg.querySelectorAll('.rst').forEach(c=>c.setAttribute('r',(c.dataset.big?5.5:2.6)*u));
-  svg.querySelectorAll('.lab').forEach(t=>{t.setAttribute('font-size',12*u);t.setAttribute('x',+t.dataset.x+10*u);t.setAttribute('y',+t.dataset.y+4*u)});
+  svg.querySelectorAll('.lab').forEach(t=>{t.setAttribute('font-size',(t.classList.contains('mid')?9.5:12.5)*u);t.setAttribute('x',+t.dataset.x+10*u);t.setAttribute('y',+t.dataset.y+4*u)});
   svg.querySelectorAll('.boro text').forEach(t=>t.setAttribute('font-size',Math.max(9*u,6)));
   svg.querySelectorAll('.pin').forEach(p=>p.setAttribute('transform',`translate(${p.dataset.x} ${p.dataset.y}) scale(${u})`));
   const tr=$('#train');if(tr)placeTrain(tr.dataset.s,true);
@@ -354,14 +380,16 @@ function highlightLine(Ln){clearRoute();svg.classList.add('focus');svg.querySele
 function pin(s,kind){const[x,y]=xy(s);const g=el('g',{class:'pin','data-x':x,'data-y':y},$('#gpin'));
   if(kind==='start'){el('circle',{r:9,class:'pulse','stroke-width':2},g);el('circle',{r:6,fill:'#7EE2A8',stroke:'#0A0C0F','stroke-width':2.5},g)}
   else{el('circle',{r:11,fill:'none',stroke:'#E8D9B8','stroke-width':2},g);el('circle',{r:5.5,fill:'#E8D9B8'},g)}}
-function drawRoute(r){clearRoute();svg.classList.add('focus');const g=$('#groute');
-  r.segs.forEach((sg,i)=>{const pts=sg.stops.map(s=>xy(s).join(',')).join(' ');const c=LINES[sg.line].c;
-    el('polyline',{points:pts,class:'rline',stroke:c,pathLength:1,style:`--g:${c};animation-delay:${i*.55}s`},g);
+function drawRoute(r,gold=true){clearRoute();svg.classList.add('focus');svg.classList.toggle('goldmode',gold);const g=$('#groute');
+  r.segs.forEach((sg,i)=>{const pts=sg.stops.map(s=>xy(s).join(',')).join(' ');const c=gold?'url(#gold)':LINES[sg.line].c;
+    el('polyline',{points:pts,class:'rline',stroke:c,pathLength:1,style:`--g:${gold?'#E8C77A':c};animation-delay:${i*.55}s`},g);
     el('polyline',{points:pts,class:'rflow',pathLength:1,style:`animation-delay:0s,${1.4+i*.55}s`},g);
     sg.stops.forEach((s,j)=>{const[x,y]=xy(s);el('circle',{cx:x,cy:y,class:'rst','data-big':(j===0||j===sg.n)?1:''},g)})});
   const sp=$('#gpin');r.segs.forEach((sg,i)=>sg.stops.forEach((s,j)=>{if(j%2)return;const[x,y]=xy(s);const k=el('g',{class:'pin spark','data-x':x+(Math.random()-.5)*8,'data-y':y+(Math.random()-.5)*8,style:`--d:${(1.6+i*.55+Math.random()*1.5).toFixed(2)}s`},sp);
     el('path',{d:'M0 -6 L1.4 -1.4 L6 0 L1.4 1.4 L0 6 L-1.4 1.4 L-6 0 L-1.4 -1.4Z',fill:'#fff'},k)}));
-  labels([r.segs[0].stops[0],...r.segs.map(sg=>sg.stops[sg.n])]);
+  const keys=[r.segs[0].stops[0],...r.segs.map(sg=>sg.stops[sg.n])];labels(keys);
+  const mids=r.segs.flatMap(sg=>sg.stops.slice(1,-1)).filter(s=>!keys.includes(s));const every=mids.length>14?2:1;
+  const gl=$('#glab');mids.forEach((s,i)=>{if(i%every)return;const[x,y]=xy(s);const t=el('text',{class:'lab mid','data-x':x,'data-y':y},gl);t.textContent=S[s]});apply();
   pin(r.segs[0].stops[0],'start');pin(r.segs[r.segs.length-1].stops.slice(-1)[0],'end');
   fitStations(r.segs.flatMap(sg=>sg.stops));apply()}
 function placeTrain(s,instant){let g=$('#train');
@@ -474,7 +502,7 @@ function home(){
   document.querySelectorAll('[data-trip]').forEach(b=>b.onclick=()=>showTrip(b.dataset.trip));
 
   $('#bigT').onchange=e=>{document.body.classList.toggle('big',e.target.checked);store.set('cc_big',e.target.checked)};
-  $('#tun').onchange=e=>{forceOff=e.target.checked;net();home()};
+  $('#tun').onchange=e=>{forceOff=e.target.checked;net();if(!forceOff)toast('Back online · live times refreshed');home()};
   document.querySelectorAll('[data-pop]').forEach(b=>b.onclick=()=>{qTo=b.dataset.pop;go()});
   $('#spk').onchange=e=>{speakOn=e.target.checked;store.set('cc_speak',speakOn)};
   if(svg){removeTrain();clearRoute();fitAll()}
@@ -502,12 +530,24 @@ function showOptions(opts,to,loc){
      <div id="tabBody">${optTab==='best'?optCard(best,0,true)+`<button class="primary full" id="useBest" style="margin-top:6px">Show steps & start</button>`
        :(alts.length?alts.map((o,k)=>optCard(o,k+1)).join('')+`<p class="muted small" style="text-align:center">Tap a route to preview it on the map, tap again to use it.</p>`:`<div class="card muted">This is the only sensible route from here.</div>`)}</div>`;
     $('#bk').onclick=()=>{qTo=null;optTab='best';home()};
-    document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{optTab=b.dataset.tab;draw();removeTrain();drawRoute((optTab==='best'||!alts.length?best:alts[0]).r);if(optTab==='alts'&&alts.length)document.querySelector('.opt').classList.add('sel')});
+    document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{optTab=b.dataset.tab;draw();removeTrain();drawRoute((optTab==='best'||!alts.length?best:alts[0]).r,optTab==='best'||!alts.length);if(optTab==='alts'&&alts.length)document.querySelector('.opt').classList.add('sel')});
     if($('#useBest'))$('#useBest').onclick=()=>pick(0);
     document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;if(i===0||b.classList.contains('sel'))return pick(i);
-      document.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');removeTrain();drawRoute(opts[i].r)});
+      document.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');removeTrain();drawRoute(opts[i].r,i===0)});
   };
   setBar('');optTab='best';draw();removeTrain();drawRoute(best.r);scrollTo({top:0});
+}
+
+function timeline(r,t,walk){
+  let rows=[];const row=(cls,name,sub,color)=>`<div class="tl ${cls}"><span class="rail"></span><span class="dot"></span><div class="tlt"><b>${name}</b>${sub?`<div class="tls">${sub}</div>`:''}</div></div>`;
+  if(walk)rows.push(row('walk','You',`Walk ${walk} min to the station`));
+  r.segs.forEach((g,i)=>{const d=LINES[g.line][g.dir];
+    rows.push(row('key',esc(S[g.stops[0]]),`${i?'Change here · ':''}Take the ${bullet(g.line)} — follow <span class="sign mini">${esc(d.sign)}</span>`));
+    const mids=g.stops.slice(1,-1);
+    if(mids.length)rows.push(`<details class="tlmid"><summary>${row('ride',`${plural(mids.length,'stop')}`,'Stay on the train · tap to see them')}</summary>${mids.map(s=>row('mini',esc(S[s]),'')).join('')}</details>`);
+    if(i===r.segs.length-1)rows.push(row('key end',esc(S[g.stops[g.n]]),`Get off here${t.note?' · '+esc(t.note):''}`));
+  });
+  return `<div class="tlwrap">${rows.join('')}</div>`;
 }
 const step=(n,html,d)=>`<div class="step" style="animation-delay:${d}ms"><span class="num">${n}</span><div>${html}</div></div>`;
 function showTrip(id){
@@ -533,8 +573,8 @@ function showTrip(id){
    </div>
    ${liveBox(r.segs[0].stops[0],r.segs[0].line,r.segs[0].dir)}
    ${on?`<a class="linkout" href="${gmaps(t.from,t.to)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>`:''}
-   <h2>Step by step</h2>
-   <div class="card" style="padding:4px 18px">${steps}</div>
+   <h2>Your stations</h2>
+   <div class="card" style="padding:18px 18px 8px">${timeline(r,t,walk)}</div>
    ${id==='quick'?`<button class="ghost full" id="save" style="margin-top:8px">Save this journey</button>`:`<button class="ghost full" id="del" style="margin-top:8px">Remove journey</button>`}`;
   $('#bk').onclick=()=>{if(id==='quick'&&qTo){qTo=null}home()};
   if($('#save'))$('#save').onclick=()=>$('#star')&&$('#star').click();
@@ -591,9 +631,10 @@ function drawRide(first){
   if($('#arrBox'))startArr();
 }
 
+function toast(m){const d=document.createElement('div');d.className='toast glass';d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),3200)}
 /* ===== Boot ===== */
 function net(){if($('#arrBox'))refreshArr();const on=isOn();const p=$('#net');p.className='glass eyebrow'+(on?'':' off');p.querySelector('span').textContent=on?'Online':'Offline'}
-addEventListener('online',net);addEventListener('offline',net);addEventListener('resize',()=>svg&&apply());
+addEventListener('online',()=>{net();toast('Back online · live times refreshed')});addEventListener('offline',net);addEventListener('resize',()=>svg&&apply());
 if(store.get('cc_big',false))document.body.classList.add('big');
 buildMap();
 $('#zin').onclick=()=>zoomBy(.7);$('#zout').onclick=()=>zoomBy(1.4);$('#zfit').onclick=()=>{ride&&$('#train')?followTrain($('#train').dataset.s):fitAll()};
