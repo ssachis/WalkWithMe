@@ -225,6 +225,11 @@ main>*:nth-child(2){animation-delay:.05s}main>*:nth-child(3){animation-delay:.1s
 .rt.swt{color:var(--ink);font-weight:600;background:var(--soft);border:1px solid var(--line);padding:4px 10px 4px 4px;border-radius:99px}
 .rt.swt .bullet{font-size:.85em}
 .rt.ex{color:#F3DFA6;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.rblink{fill:none;stroke-width:calc(var(--u)*6);stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1s var(--ease) forwards,blink 1.3s ease-in-out infinite;filter:drop-shadow(0 0 calc(var(--u)*9) var(--g))}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.18}}
+.pickhint{margin:0 0 4px;color:var(--accent)!important;animation:rise .5s var(--ease) both}
+.opt.sel .m .serif{color:#F3DFA6}
+.opt.sel{background:linear-gradient(160deg,rgba(232,199,122,.12),var(--card) 65%)}
 </style>
 </head>
 <body>
@@ -411,6 +416,11 @@ function drawRoute(r,gold=true){clearRoute();svg.classList.add('focus');svg.clas
   labels([r.segs[0].stops[0],r.segs[r.segs.length-1].stops.slice(-1)[0]]);
   pin(r.segs[0].stops[0],'start');pin(r.segs[r.segs.length-1].stops.slice(-1)[0],'end');
   fitStations(r.segs.flatMap(sg=>sg.stops));apply()}
+function drawAll(opts,to){clearRoute();svg.classList.add('focus');svg.classList.remove('goldmode');const g=$('#groute');
+  opts.forEach((o,k)=>o.r.segs.forEach(sg=>{const pts=sg.stops.map(s=>xy(s).join(',')).join(' '),c=LINES[sg.line].c;
+    el('polyline',{points:pts,class:'rblink',stroke:c,pathLength:1,style:`--g:${c};animation-delay:${k*.12}s,${.9+k*.33}s`},g)}));
+  const starts=[...new Set(opts.map(o=>o.r.segs[0].stops[0]))];starts.forEach(s=>pin(s,'start'));pin(to,'end');labels([to]);
+  fitStations(opts.flatMap(o=>o.r.segs.flatMap(sg=>sg.stops)));apply()}
 function placeTrain(s,instant){let g=$('#train');
   if(!g){g=el('g',{id:'train'},$('#gpin'));el('circle',{r:10,class:'pulse','stroke-width':2},g);el('circle',{r:7.5,fill:'#E8D9B8',stroke:'#0A0C0F','stroke-width':2.5,style:'filter:drop-shadow(0 0 6px #E8D9B8)'},g);
     const tx=el('text',{x:14,y:5,class:'youlab'},g);tx.textContent=''}
@@ -548,15 +558,17 @@ function showOptions(opts,to,loc){
      <div class="seg" role="tablist"><span class="segpill" style="transform:translateX(${optTab==='best'?0:100}%)"></span>
        <button role="tab" data-tab="best" class="${optTab==='best'?'on':''}">Best route</button>
        <button role="tab" data-tab="alts" class="${optTab==='alts'?'on':''}">Alternatives${alts.length?` · ${alts.length}`:''}</button></div>
+     <p class="muted small pickhint">${opts.length>1?'All routes are blinking on the map. Tap one to light it up in gold.':'Tap the route to light it up.'}</p>
      <div id="tabBody">${optTab==='best'?optCard(best,0,true)+`<button class="primary full" id="useBest" style="margin-top:6px">Show steps & start</button>`
        :(alts.length?alts.map((o,k)=>optCard(o,k+1)).join('')+`<p class="muted small" style="text-align:center">Tap a route to preview it on the map, tap again to use it.</p>`:`<div class="card muted">This is the only sensible route from here.</div>`)}</div>`;
     $('#bk').onclick=()=>{qTo=null;optTab='best';home()};
-    document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{optTab=b.dataset.tab;draw();removeTrain();drawRoute((optTab==='best'||!alts.length?best:alts[0]).r,optTab==='best'||!alts.length);if(optTab==='alts'&&alts.length)document.querySelector('.opt').classList.add('sel')});
+    document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{optTab=b.dataset.tab;draw();removeTrain();drawAll(opts,to)});
     if($('#useBest'))$('#useBest').onclick=()=>pick(0);
-    document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;if(i===0||b.classList.contains('sel'))return pick(i);
-      document.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');removeTrain();drawRoute(opts[i].r,i===0)});
+    document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;if(b.classList.contains('sel'))return pick(i);
+      document.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');removeTrain();drawRoute(opts[i].r,true);
+      const hn=$('.pickhint');if(hn)hn.textContent='Locked in. Tap again to start →'});
   };
-  setBar('');optTab='best';draw();removeTrain();drawRoute(best.r);scrollTo({top:0});
+  setBar('');optTab='best';draw();removeTrain();drawAll(opts,to);scrollTo({top:0});
 }
 
 function timeline(r,t,walk){
