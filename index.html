@@ -809,7 +809,6 @@ function showTrip(id){
      <div class="stat"><small>${r.changes?plural(r.changes,'change'):'Direct'}</small>${r.segs.map(g=>bullet(g.line)).join(' ')}</div>
      <div class="stat"><small>Arrive</small><span class="serif">${eta(r.mins+walk).replace(/\s?[AP]M/i,'')}</span> <span class="muted">${(eta(r.mins+walk).match(/[AP]M/i)||[''])[0]}</span></div>
    </div>
-   ${t.opt&&t.opt.blurb&&!specialFor(r).length?`<p class="tripblurb">${esc(t.opt.blurb)}</p>`:''}
    ${liveBox(r.segs[0].stops[0],r.segs[0].line,r.segs[0].dir)}
    ${on?`<a class="linkout" href="${gmaps(t.from,t.to)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>`:''}
    <h2>Your stations</h2>
