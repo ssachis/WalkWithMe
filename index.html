@@ -294,6 +294,13 @@ main#view h1,main#view .eyebrow{text-shadow:0 2px 18px rgba(0,0,0,.8)}
 #toBox .field input{font-size:1.15em}
 #toBox .field::before{content:'';width:10px;height:10px;border-radius:50%;border:2px solid var(--accent);flex:none;margin:0 4px 0 2px}
 @media (max-width:899px){.mapbtns{bottom:auto;top:calc(110px + env(safe-area-inset-top));flex-direction:column}.mapbtns button{min-height:38px;width:38px}}
+.bestpill{font-size:.62em;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#16120A;background:linear-gradient(135deg,#F6DC94,#D4A84B);padding:4px 9px;border-radius:99px;margin-right:4px}
+.opt.best{border-color:rgba(232,199,122,.28)}
+.opt small{margin-top:2px;display:block}
+.back{font-size:1.2em}
+.chips{overflow:visible!important;flex-wrap:nowrap;margin:0!important;padding:14px 0 4px!important}
+.chip{flex:1 1 0;min-width:0;justify-content:center;white-space:nowrap}
+.chips{gap:8px!important}.chip{padding:8px 10px 8px 6px!important;font-size:.86em!important;gap:6px}
 </style>
 </head>
 <body>
@@ -520,7 +527,7 @@ const plural=(n,w)=>`${n} ${w}${n===1?'':'s'}`;
 
 let forceOff=false;const isOn=()=>navigator.onLine&&!forceOff;
 const eta=m=>new Date(Date.now()+m*60000).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
-const POPULAR=['timessq','grandcentral','unionsq','nyu8','columbus','atlantic','bedford','s116_1'];
+const POPULAR=['timessq','grandcentral','columbus'];
 
 /* ===== Arrivals: live when online, last saved when offline =====
    Swap DEMO for the MTA GTFS-realtime feed (via a small proxy) once hosted outside Claude. */
@@ -584,7 +591,7 @@ function home(){
    <div class="hero"><span class="eyebrow near ${on?'':'off'}" id="nearme"></span>
      <h1 class="serif">Where <em>to?</em></h1></div>
    <div class="search glass"><div id="toBox"></div></div><div id="fromBox" class="${qFrom?'':'hidden'}" style="margin-top:10px"></div>
-   <div class="chips">${POPULAR.map((s,i)=>`<button class="chip" data-pop="${s}" style="animation-delay:${200+i*40}ms">${bullet(served[s][0])}${esc(S[s].replace(/–.*/,''))}</button>`).join('')}</div>
+   <div class="chips">${POPULAR.map((s,i)=>`<button class="chip" data-pop="${s}" style="animation-delay:${200+i*40}ms">${bullet(served[s][0])}${({timessq:'Times Sq',grandcentral:'Grand Central',columbus:'Columbus Cir'})[s]||esc(S[s])}</button>`).join('')}</div>
    <h2>Saved journeys</h2>
    ${trips.filter(t=>t.id!=='quick').map(t=>{const r=route(t.from,t.to);return`<button class="trip" data-trip="${t.id}">
      <span class="lines">${r?[...new Set(r.segs.map(g=>g.line))].map(bullet).join(''):''}</span>
@@ -614,36 +621,24 @@ function home(){
   if(svg){removeTrain();clearRoute();fitAll()}
   scrollTo({top:0});
 }
-let optTab='best';
-function optCard(o,i,big){return `<button class="trip opt ${big?'hero-opt':''}" data-i="${i}" style="animation-delay:${i*80}ms">
-     <span class="t">${o.tags.length?`<span class="tags">${o.tags.map(t=>`<span class="tg">${t}</span>`).join('')}</span>`:''}
-       <span class="olines">${o.walk?'<span class="wk">🚶 '+o.walk+'</span><span class="ar">›</span>':''}${o.r.segs.map(g=>bullet(g.line)).join('<span class="ar">›</span>')}</span>
-       <small>${o.walk?`Walk ${o.walk} min to ${esc(S[o.from])} · `:`From ${esc(S[o.from])} · `}${o.r.changes?plural(o.r.changes,'change'):'direct'} · ${plural(o.r.stops,'stop')}</small></span>
-     <span class="m"><span class="serif">${o.total}</span><small>min</small><small class="eta">${eta(o.total)}</small></span></button>`}
+function optCard(o,i,sel){return `<button class="trip opt ${sel?'sel':''} ${i===0?'best':''}" data-i="${i}" style="animation-delay:${i*70}ms">
+   <span class="t"><span class="olines">${i===0?'<span class="bestpill">Best</span>':''}${o.walk?'<span class="wk">🚶 '+o.walk+'</span><span class="ar">›</span>':''}${o.r.segs.map(g=>bullet(g.line)).join('<span class="ar">›</span>')}</span>
+   <small>${o.r.changes?plural(o.r.changes,'change'):'No changes'} · arrive ${eta(o.total)}</small></span>
+   <span class="m"><span class="serif">${o.total}</span><small>min</small></span></button>`}
 function showOptions(opts,to,loc){
   if(!opts.length){$('#view').innerHTML=`<button class="back" id="bk">← Back</button><div class="card">No route found in this prototype.</div>`;$('#bk').onclick=home;return}
-  const best=opts[0],alts=opts.slice(1);
+  let sel=-1;
   const pick=i=>{const o=opts[i];trips=trips.filter(t=>t.id!=='quick');trips.push({id:'quick',name:`To ${S[to]}`,from:o.from,to,walk:o.walk,note:'',opt:o});showTrip('quick')};
   const draw=()=>{
-    $('#view').innerHTML=`
-     <button class="back" id="bk">← New search</button>
-     <span class="eyebrow" style="display:flex;margin-top:4px"><i></i>${loc?nearTxt(loc):esc(S[best.from])}</span>
-     <h1 class="serif title" style="margin-top:10px">To <em style="color:var(--accent)">${esc(S[to])}</em></h1>
-     ${loc&&loc.demo?`<div class="card offnote" style="font-size:.85em;padding:12px 16px"><span class="muted">Demo location. On the live site it uses your GPS, which works with no internet.</span></div>`:''}
-     <div class="seg" role="tablist"><span class="segpill" style="transform:translateX(${optTab==='best'?0:100}%)"></span>
-       <button role="tab" data-tab="best" class="${optTab==='best'?'on':''}">Best route</button>
-       <button role="tab" data-tab="alts" class="${optTab==='alts'?'on':''}">Alternatives${alts.length?` · ${alts.length}`:''}</button></div>
-     <p class="muted small pickhint">${opts.length>1?'All routes are blinking on the map. Tap one to light it up in gold.':'Tap the route to light it up.'}</p>
-     <div id="tabBody">${optTab==='best'?optCard(best,0,true)+`<button class="primary full" id="useBest" style="margin-top:6px">Show steps & start</button>`
-       :(alts.length?alts.map((o,k)=>optCard(o,k+1)).join('')+`<p class="muted small" style="text-align:center">Tap a route to preview it on the map, tap again to use it.</p>`:`<div class="card muted">This is the only sensible route from here.</div>`)}</div>`;
-    $('#bk').onclick=()=>{qTo=null;optTab='best';home()};
-    document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{optTab=b.dataset.tab;draw();removeTrain();drawAll(opts,to)});
-    if($('#useBest'))$('#useBest').onclick=()=>pick(0);
-    document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;if(b.classList.contains('sel'))return pick(i);
-      document.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');removeTrain();drawRoute(opts[i].r,true);
-      const hn=$('.pickhint');if(hn)hn.textContent='Locked in. Tap again to start →'});
+    $('#view').innerHTML=`<button class="back" id="bk">←</button>
+     <h1 class="serif title">To <em style="color:var(--accent)">${esc(S[to])}</em></h1>
+     ${opts.map((o,i)=>optCard(o,i,i===sel)).join('')}`;
+    $('#bk').onclick=()=>{qTo=null;home()};
+    document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;if(i===sel)return pick(i);sel=i;
+      document.querySelectorAll('.opt').forEach(x=>x.classList.toggle('sel',+x.dataset.i===sel));removeTrain();drawRoute(opts[i].r,true);bar()});
   };
-  setBar('');optTab='best';draw();removeTrain();drawAll(opts,to);scrollTo({top:0});
+  const bar=()=>{const i=sel<0?0:sel;setBar(`<button class="primary" id="goSel">${sel<0?'Take the best route':'Go'} · ${opts[i].total} min</button>`);$('#goSel').onclick=()=>pick(i)};
+  draw();bar();removeTrain();drawAll(opts,to);scrollTo({top:0});
 }
 
 function timeline(r,t,walk){
