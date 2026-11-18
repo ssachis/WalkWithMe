@@ -674,7 +674,7 @@ function picker(box,val,ph,onPick,key){
 /* ===== Views ===== */
 function setBar(html){document.body.classList.toggle('hasbar',!!html);const b=$('#bar');if(!html){b.classList.add('hidden');return}$('#barInner').innerHTML=html;b.classList.remove('hidden')}
 let qFrom=null,qTo=null,lastLoc=null,showAllJ=false;
-function nearTxt(loc){const n=nearest(loc.lat,loc.lng,1)[0];return `You're near <b>${esc(S[n.s])}</b>${loc.demo?' <span class="dm">demo</span>':''}`}
+function nearTxt(loc){const n=nearest(loc.lat,loc.lng,1)[0];return `You're near <b>${esc(S[n.s])}</b>`}
 function locLabel(loc){const n=nearest(loc.lat,loc.lng,1)[0];return `Your location <span class="muted locname">(${esc(S[n.s])})</span>`}
 function home(){
   setBar('');
@@ -693,7 +693,7 @@ function home(){
   const go=async()=>{if(!qTo)return;
     if(qFrom){const o=[{s:qFrom,walk:0}],t=qTo;showOptions(m=>options(o,t,m),t,null);return}
     const loc=lastLoc||await locate();lastLoc=loc;const o=nearest(loc.lat,loc.lng),t=qTo;showOptions(m=>options(o,t,m),t,loc)};
-  const nmUpd=()=>{const nm=$('#nearme');if(!nm)return;nm.innerHTML=qFrom?`<i></i>Starting from <b>${esc(S[qFrom])}</b> <button class="textbtn inl" id="useMe">use my location</button>`:`<i></i>${lastLoc?nearTxt(lastLoc):'Finding you…'} <button class="textbtn inl" id="chgFrom">change</button>`;
+  const nmUpd=()=>{const nm=$('#nearme');if(!nm)return;nm.innerHTML=qFrom?`<i></i>Starting from <b>${esc(S[qFrom])}</b> <button class="textbtn inl" id="useMe">use my location</button>`:`<i></i>${lastLoc?nearTxt(lastLoc):'Finding you…'}`;
     if($('#useMe'))$('#useMe').onclick=()=>{qFrom=null;home()};
     if($('#chgFrom'))$('#chgFrom').onclick=()=>{const fb=$('#fromBox');fb.classList.remove('hidden');picker(fb,null,'Start from a different station',v=>{qFrom=v;home();go()},'From');fb.querySelector('input').focus()}};
   nmUpd();if(!lastLoc)locate().then(l=>{lastLoc=l;nmUpd();loadWx()});
