@@ -423,6 +423,13 @@ body.hasbar main#view{padding-bottom:96px!important}
 .simhud{width:340px!important}.simhud button{padding:2px 7px!important}#simVo.on{background:rgba(126,226,168,.15);color:#7EE2A8}
 .simhud{z-index:90!important;right:16px!important;max-width:calc(100vw - 32px)}
 .startbtns{display:flex;gap:12px;justify-content:center;margin-top:34px;flex-wrap:wrap}.startbtns button{min-height:52px;padding:0 26px;border-radius:999px;font-size:1em}
+
+/* subtitle-style captions */
+.simhud.subt{top:auto!important;bottom:26px!important;left:50%!important;right:auto!important;transform:translateX(-50%);width:auto!important;max-width:min(720px,calc(100vw - 40px))!important;padding:10px 22px!important;border-radius:999px!important;background:rgba(10,12,15,.72)!important;border-color:rgba(255,255,255,.06)!important;box-shadow:0 10px 30px rgba(0,0,0,.4)!important}
+@media (min-width:900px){.simhud.subt{left:calc(50% + 230px)!important;max-width:min(640px,calc(100vw - 560px))!important}}
+.simhud.subt .simrow,.simhud.subt .simstat{display:none!important}
+.simhud.subt .simcap{margin:0!important;min-height:0!important;text-align:center;font-size:15px}
+.simhud.subt .simagain{display:none}
 </style>
 </head>
 <body>
@@ -958,7 +965,9 @@ if(window.WWM_SIM){(function(){
     <button id="simRe" aria-label="Restart">↺</button><button id="simVo">Narrate</button></div>
     <div class="simcap" id="simCap">Starting…</div>
     <div class="simstat"><span id="sSig">● Online</span><span id="sWx">52° · Clear</span><span id="sLoc">GPS · 77 St</span></div>`;
-  document.body.appendChild(hud);
+  document.body.appendChild(hud);hud.className='simhud subt';
+  addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;const k=e.key.toLowerCase();
+    if(k===' '){e.preventDefault();$('#simPlay').click()}else if('124'.includes(k)&&k)$(`[data-sp="${k}"]`)?.click();else if(k==='n')$('#simVo').click();else if(k==='r')location.reload()});
   $('#simPlay').onclick=()=>{paused=!paused;$('#simPlay').textContent=paused?'▶':'❚❚'};
   hud.querySelectorAll('[data-sp]').forEach(b=>b.onclick=()=>{speed=+b.dataset.sp;hud.querySelectorAll('[data-sp]').forEach(x=>x.classList.toggle('on',x===b))});
   $('#simRe').onclick=()=>location.reload();
