@@ -355,6 +355,10 @@ main#view .trip:not(.opt) .bullet{font-size:.75em}
 .more{width:38px!important;height:38px;min-height:38px!important;margin:6px auto 0!important}
 @media (min-width:900px){main#view{padding-bottom:28px!important}}
 .foot{margin-top:16px!important}
+.chips{flex-wrap:wrap!important}
+.chips .chip:not(.chipmore){flex:0 1 auto!important}
+.chipmore{flex:none!important;width:38px;padding:0!important;justify-content:center;color:var(--accent)!important}
+.chipmore svg{transition:transform .35s var(--ease)}
 </style>
 </head>
 <body>
@@ -603,7 +607,9 @@ const plural=(n,w)=>`${n} ${w}${n===1?'':'s'}`;
 
 let forceOff=false;const isOn=()=>navigator.onLine&&!forceOff;
 const eta=m=>new Date(Date.now()+m*60000).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
-const POPULAR=['timessq','grandcentral','columbus'];
+const POPULAR=['timessq','grandcentral','columbus','unionsq','heraldsq','atlantic','w4','nyu8','bedford','s116_1'];
+const PLBL={timessq:'Times Sq',grandcentral:'Grand Central',columbus:'Columbus Cir',unionsq:'Union Sq',heraldsq:'Herald Sq',atlantic:'Barclays Ctr',w4:'W 4 St',nyu8:'8 St–NYU',bedford:'Bedford Av',s116_1:'Columbia'};
+let showAllP=false;
 
 /* ===== Arrivals: live when online, last saved when offline =====
    Swap DEMO for the MTA GTFS-realtime feed (via a small proxy) once hosted outside Claude. */
@@ -667,7 +673,7 @@ function home(){
    <div class="hero"><span class="eyebrow near ${on?'':'off'}" id="nearme"></span>
      <h1 class="serif">Where <em>to?</em></h1></div>
    <div class="search glass"><div id="toBox"></div></div><div id="fromBox" class="${qFrom?'':'hidden'}" style="margin-top:10px"></div>
-   <div class="chips">${POPULAR.map((s,i)=>`<button class="chip" data-pop="${s}" style="animation-delay:${200+i*40}ms"><i class="cdot" style="background:${LINES[served[s][0]].c};box-shadow:0 0 10px ${LINES[served[s][0]].c}"></i>${({timessq:'Times Sq',grandcentral:'Grand Central',columbus:'Columbus Cir'})[s]||esc(S[s])}</button>`).join('')}</div>
+   <div class="chips ${showAllP?'open':''}">${POPULAR.slice(0,showAllP?99:2).map((s,i)=>`<button class="chip" data-pop="${s}" style="animation-delay:${i*35}ms"><i class="cdot" style="background:${LINES[served[s][0]].c};box-shadow:0 0 10px ${LINES[served[s][0]].c}"></i>${PLBL[s]||esc(S[s])}</button>`).join('')}<button class="chip chipmore" id="moreP" aria-label="${showAllP?'Show fewer stations':'Show more stations'}"><svg viewBox="0 0 24 24" width="16" height="16" style="transform:rotate(${showAllP?180:0}deg)"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
    <h2>Saved journeys</h2>
    ${(()=>{const sv=trips.filter(t=>t.id!=='quick');return sv.slice(0,showAllJ?99:2).map(t=>{const r=route(t.from,t.to);return`<button class="trip" data-trip="${t.id}">
      <span class="lines">${r?[...new Set(r.segs.map(g=>g.line))].map(bullet).join(''):''}</span>
@@ -688,6 +694,7 @@ function home(){
   picker($('#toBox'),qTo,'Search your final destination',v=>{qTo=v;go()},'');
 
   document.querySelectorAll('[data-trip]').forEach(b=>b.onclick=()=>showTrip(b.dataset.trip));
+  $('#moreP').onclick=()=>{showAllP=!showAllP;home()};
   if($('#moreJ'))$('#moreJ').onclick=()=>{showAllJ=!showAllJ;home()};
 
   $('#bigT').onclick=()=>{const b=!document.body.classList.contains('big');document.body.classList.toggle('big',b);store.set('cc_big',b);home()};
