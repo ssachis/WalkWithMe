@@ -475,8 +475,7 @@ const BLURB={
   '6':'Runs on part of the original 1904 subway under Lexington Av.',
   '1':'Runs on part of the original 1904 subway under Broadway.',
   A:'The longest route in the system, more than 30 miles end to end.',
-  L:'Uses modern computer signals, so trains run close together.',
-  R:'A steady local that stops everywhere, with no surprises.'};
+  L:'Uses modern computer signals, so trains run close together.'};
 function scenicScore(r){let n=0;r.segs.forEach(g=>{for(let i=0;i<g.n;i++)if(isScenic(g.stops[i],g.stops[i+1]))n++});return n}
 function blurbFor(o,mode){const ls=o.r.segs.map(g=>g.line);
   if(mode==='scenic'){if(o.scenic){const l=ls.find(x=>['Q','7','F'].includes(x));return BLURB[l]}return 'No above-ground stretch on this trip, it stays underground.'}
