@@ -301,11 +301,34 @@ main#view h1,main#view .eyebrow{text-shadow:0 2px 18px rgba(0,0,0,.8)}
 .chips{overflow:visible!important;flex-wrap:nowrap;margin:0!important;padding:14px 0 4px!important}
 .chip{flex:1 1 0;min-width:0;justify-content:center;white-space:nowrap}
 .chips{gap:8px!important}.chip{padding:8px 10px 8px 6px!important;font-size:.86em!important;gap:6px}
+
+/* posh map: silver lines, gold coastlines */
+#map{background:radial-gradient(90% 70% at 70% 30%,#101722,#06080B 70%)!important}
+.land{fill:#0F1318;stroke:rgba(232,199,122,.32);stroke-width:1.2;filter:drop-shadow(0 0 6px rgba(232,199,122,.10))}
+.calm .ln{stroke:url(#silver)!important;opacity:.42;filter:drop-shadow(0 0 2px rgba(220,225,235,.25))}
+.calm.focus .ln{opacity:.16}
+.calm .st{stroke:#9AA0AA;fill:#0A0C0F}.calm .st.xf{fill:#D9DDE3;stroke:#0A0C0F}
+.focus .st{opacity:.15}
+.boro text{fill:rgba(232,199,122,.28)!important}
+.mapchip{display:flex;flex-direction:column;line-height:1.15;padding:10px 18px!important}
+.mapchip small{font-family:Inter,sans-serif;font-size:.5em;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.modes{display:flex;gap:6px;margin:4px 0 14px;padding:4px;border-radius:14px;background:rgba(16,19,24,.55);border:1px solid var(--line);backdrop-filter:blur(14px)}
+.modes button{flex:1;min-height:40px;padding:6px;font-size:.88em;background:transparent;color:var(--muted);border-radius:10px}
+.modes button.on{background:linear-gradient(135deg,rgba(246,220,148,.18),rgba(212,168,75,.08));color:#F3DFA6;box-shadow:inset 0 0 0 1px rgba(232,199,122,.35)}
+.blurb{display:block;margin-top:8px;font-size:.82em;color:#C9B98F;font-style:italic;font-family:'Instrument Serif',serif;font-size:1em;line-height:1.3}
+.blurb::before{content:'— '}
+.chip{background:rgba(255,255,255,.035)!important;border:1px solid rgba(255,255,255,.06)!important;padding:9px 14px!important;font-weight:500;color:#D8D4CB;font-size:.88em!important}
+.chip:hover{border-color:rgba(232,199,122,.35)!important;color:#F3DFA6}
+.cdot{width:7px;height:7px;border-radius:50%;flex:none}
+.trip .lines{flex-direction:row!important;gap:0!important}
+.trip .lines .bullet{margin-left:-8px}.trip .lines .bullet:first-child{margin-left:0}
+.more{width:100%;background:transparent;border:1px dashed rgba(232,199,122,.25);color:var(--accent);border-radius:16px;min-height:50px;margin-top:2px;font-weight:500}
+.more span{transition:transform .3s var(--ease)}.more:hover span{transform:translateX(4px)}
 </style>
 </head>
 <body>
 <div id="map">
-  <div class="mapchip glass serif">Walk<em>With</em>Me</div>
+  <div class="mapchip glass"><span class="serif">Walk<em>With</em>Me</span><small>Built for the NYC subway</small></div>
   <span id="net" class="glass eyebrow"><i></i><span>Online</span></span>
   <span id="wx" class="glass hidden"></span>
   <div id="wxfx"></div>
@@ -397,20 +420,30 @@ function gmaps(a,b){return`https://www.google.com/maps/dir/?api=1&origin=${encod
 const DEMO_LOC={lat:40.7286,lng:-73.9957,label:'Warren Weaver Hall (demo)'};
 function meters(a,b,c,d){const R=6371000,t=Math.PI/180,x=(d-b)*t*Math.cos((a+c)/2*t),y=(c-a)*t;return Math.sqrt(x*x+y*y)*R}
 function nearest(lat,lng,k=3){return Object.keys(P).map(s=>({s,m:meters(lat,lng,P[s][0],P[s][1])})).sort((a,b)=>a.m-b.m).filter((o,i)=>i<k&&(i===0||o.m<1300)).map(o=>({s:o.s,walk:Math.max(1,Math.round(o.m/80))}))}
-function options(origins,to){
+/* Trip styles: shortest, reliable, scenic */
+const SCENIC=new Set(['dekalb|canal','carroll|smith9','smith9|av4_9','qbp|s33_7','s33_7|s40_7','s40_7|s46_7','s46_7|s52_7','s52_7|woodside','woodside|s69_7','s69_7|s74_7','courtsq|qbp']);
+const isScenic=(a,b)=>SCENIC.has(a+'|'+b)||SCENIC.has(b+'|'+a);
+const MODERN=new Set(['L','7']);
+const BLURB={
+  Q:'Crosses the Manhattan Bridge with open skyline views over the East River.',
+  '7':'Rides elevated through Queens with views back toward the Manhattan skyline.',
+  F:'Climbs to Smith–9 Sts, the highest station in the subway system.',
+  '6':'Runs on part of the original 1904 subway under Lexington Av.',
+  '1':'Runs on part of the original 1904 subway under Broadway.',
+  A:'The longest route in the system, more than 30 miles end to end.',
+  L:'Uses modern computer signals, so trains run close together.',
+  R:'A steady local that stops everywhere, with no surprises.'};
+function scenicScore(r){let n=0;r.segs.forEach(g=>{for(let i=0;i<g.n;i++)if(isScenic(g.stops[i],g.stops[i+1]))n++});return n}
+function blurbFor(o,mode){const ls=o.r.segs.map(g=>g.line);
+  if(mode==='scenic'){if(o.scenic){const l=ls.find(x=>['Q','7','F'].includes(x));return BLURB[l]}return 'No above-ground stretch on this trip, it stays underground.'}
+  if(mode==='reliable'){const l=ls.find(x=>MODERN.has(x));return l?BLURB[l]:(o.r.changes===0?'One train, no changes. The simplest way there.':'Fewest changes of the options here.')}
+  const l=ls.find(x=>['Q','7','F','6','1','A'].includes(x))||ls[0];return BLURB[l]}
+function options(origins,to,mode='shortest'){
   const all=[];
   for(const o of origins)for(const tp of [40,14,4]){if(o.s===to)continue;const r=route(o.s,to,tp);if(r)all.push({from:o.s,walk:o.walk,r,total:r.mins+o.walk})}
-  all.sort((a,b)=>a.total-b.total);
-  const seen=new Set(),out=[];for(const o of all){const k=o.r.segs.map(g=>g.line).join('>');if(!seen.has(k)){seen.add(k);out.push(o)}}
-  if(!out.length)return[];
-  const fc=Math.min(...out.map(o=>o.r.changes)),lw=Math.min(...out.map(o=>o.walk));
-  let top=out.slice(0,3);
-  if(!top.some(o=>o.r.changes===fc))top[top.length-1]=out.find(o=>o.r.changes===fc);
-  top.sort((a,b)=>a.total-b.total);
-  top.forEach((o,i)=>{o.tags=[];if(i===0)o.tags.push('Fastest');
-    if(o.r.changes===fc&&top.some(x=>x.r.changes!==fc)&&!top.slice(0,i).some(x=>x.r.changes===fc))o.tags.push('Fewest changes');
-    if(o.walk===lw&&top.some(x=>x.walk!==lw)&&!top.slice(0,i).some(x=>x.walk===lw))o.tags.push('Least walking')});
-  return top}
+  const seen=new Set(),out=[];all.sort((a,b)=>a.total-b.total);for(const o of all){const k=o.r.segs.map(g=>g.line).join('>');if(!seen.has(k)){seen.add(k);o.scenic=scenicScore(o.r);o.modern=o.r.segs.filter(g=>MODERN.has(g.line)).length;out.push(o)}}
+  const key={shortest:o=>o.total,reliable:o=>o.r.changes*100-o.modern*8+o.total,scenic:o=>-o.scenic*6+o.total}[mode];
+  out.sort((a,b)=>key(a)-key(b));const top=out.slice(0,3);top.forEach(o=>o.blurb=blurbFor(o,mode));return top}
 function locate(){return new Promise(res=>{let done=false;const fall=why=>{if(!done){done=true;res({...DEMO_LOC,demo:true,why})}};
   try{if(!navigator.geolocation)return fall('unsupported');setTimeout(()=>fall('timeout'),6000);
     navigator.geolocation.getCurrentPosition(p=>{if(!done){done=true;res({lat:p.coords.latitude,lng:p.coords.longitude,label:'Your location'})}},()=>fall('blocked'),{enableHighAccuracy:true,timeout:5500,maximumAge:60000})}catch(e){fall('blocked')}})}
@@ -434,6 +467,7 @@ function buildMap(){
   svg=el('svg',{id:'svgmap',role:'img','aria-label':'NYC subway map'});$('#map').prepend(svg);
   const defs=el('defs',{},svg);const gg=el('linearGradient',{id:'gold',x1:0,y1:0,x2:1,y2:1},defs);
   [['0','#FFF1C1'],['.45','#E2B85A'],['1','#F6DC94']].forEach(([o,c])=>el('stop',{offset:o,'stop-color':c},gg));
+  const sg=el('linearGradient',{id:'silver',x1:0,y1:0,x2:1,y2:1},defs);[['0','#E9ECF1'],['.5','#8D939D'],['1','#D5D9E0']].forEach(([o,c])=>el('stop',{offset:o,'stop-color':c},sg));
   const land=el('g',{},svg);for(const k in LAND)el('polygon',{points:poly(LAND[k]),class:'land'},land);
   const lab=el('g',{class:'boro'},svg);
   [['MANHATTAN',40.778,-73.983,-62],['BROOKLYN',40.652,-73.935,0],['QUEENS',40.768,-73.875,0]].forEach(([t,a,b,r])=>{const[x,y]=pj(a,b);const e=el('text',{x,y,transform:`rotate(${r} ${x} ${y})`},lab);e.textContent=t});
@@ -581,7 +615,7 @@ function picker(box,val,ph,onPick,key){
 
 /* ===== Views ===== */
 function setBar(html){const b=$('#bar');if(!html){b.classList.add('hidden');return}$('#barInner').innerHTML=html;b.classList.remove('hidden')}
-let qFrom=null,qTo=null,lastLoc=null;
+let qFrom=null,qTo=null,lastLoc=null,showAllJ=false;
 function nearTxt(loc){const n=nearest(loc.lat,loc.lng,1)[0];return `You're near <b>${esc(S[n.s])}</b>${loc.demo?' <span class="dm">demo</span>':''}`}
 function locLabel(loc){const n=nearest(loc.lat,loc.lng,1)[0];return `Your location <span class="muted locname">(${esc(S[n.s])})</span>`}
 function home(){
@@ -591,17 +625,16 @@ function home(){
    <div class="hero"><span class="eyebrow near ${on?'':'off'}" id="nearme"></span>
      <h1 class="serif">Where <em>to?</em></h1></div>
    <div class="search glass"><div id="toBox"></div></div><div id="fromBox" class="${qFrom?'':'hidden'}" style="margin-top:10px"></div>
-   <div class="chips">${POPULAR.map((s,i)=>`<button class="chip" data-pop="${s}" style="animation-delay:${200+i*40}ms">${bullet(served[s][0])}${({timessq:'Times Sq',grandcentral:'Grand Central',columbus:'Columbus Cir'})[s]||esc(S[s])}</button>`).join('')}</div>
+   <div class="chips">${POPULAR.map((s,i)=>`<button class="chip" data-pop="${s}" style="animation-delay:${200+i*40}ms"><i class="cdot" style="background:${LINES[served[s][0]].c};box-shadow:0 0 10px ${LINES[served[s][0]].c}"></i>${({timessq:'Times Sq',grandcentral:'Grand Central',columbus:'Columbus Cir'})[s]||esc(S[s])}</button>`).join('')}</div>
    <h2>Saved journeys</h2>
-   ${trips.filter(t=>t.id!=='quick').map(t=>{const r=route(t.from,t.to);return`<button class="trip" data-trip="${t.id}">
+   ${(()=>{const sv=trips.filter(t=>t.id!=='quick');return sv.slice(0,showAllJ?99:2).map(t=>{const r=route(t.from,t.to);return`<button class="trip" data-trip="${t.id}">
      <span class="lines">${r?[...new Set(r.segs.map(g=>g.line))].map(bullet).join(''):''}</span>
      <span class="t"><b>${esc(t.name)}</b><small>${esc(S[t.from])} → ${esc(S[t.to])}</small></span>
-     <span class="m">${r?`<span class="serif">${r.mins}</span><small>min</small>`:''}</span></button>`}).join('')}
+     <span class="m">${r?`<span class="serif">${r.mins}</span><small>min</small>`:''}</span></button>`}).join('')+(sv.length>2?`<button class="more" id="moreJ">${showAllJ?'Show less':'More journeys'} <span>${showAllJ?'↑':'→'}</span></button>`:'')})()}
    <div class="foot"><button class="textbtn" id="tun">${forceOff?'Exit tunnel mode':'Preview tunnel mode'}</button><span>·</span><button class="textbtn" id="bigT">${document.body.classList.contains('big')?'Normal text':'Larger text'}</button></div>`;
   const go=async()=>{if(!qTo)return;
-    if(qFrom){showOptions(options([{s:qFrom,walk:0}],qTo),qTo,null);return}
-    
-    const loc=lastLoc||await locate();lastLoc=loc;showOptions(options(nearest(loc.lat,loc.lng),qTo),qTo,loc)};
+    if(qFrom){const o=[{s:qFrom,walk:0}],t=qTo;showOptions(m=>options(o,t,m),t,null);return}
+    const loc=lastLoc||await locate();lastLoc=loc;const o=nearest(loc.lat,loc.lng),t=qTo;showOptions(m=>options(o,t,m),t,loc)};
   const nmUpd=()=>{const nm=$('#nearme');if(!nm)return;nm.innerHTML=qFrom?`<i></i>Starting from <b>${esc(S[qFrom])}</b> <button class="textbtn inl" id="useMe">use my location</button>`:`<i></i>${lastLoc?nearTxt(lastLoc):'Finding you…'} <button class="textbtn inl" id="chgFrom">change</button>`;
     if($('#useMe'))$('#useMe').onclick=()=>{qFrom=null;home()};
     if($('#chgFrom'))$('#chgFrom').onclick=()=>{const fb=$('#fromBox');fb.classList.remove('hidden');picker(fb,null,'Start from a different station',v=>{qFrom=v;home();go()},'From');fb.querySelector('input').focus()}};
@@ -613,6 +646,7 @@ function home(){
   picker($('#toBox'),qTo,'Search your final destination',v=>{qTo=v;go()},'');
 
   document.querySelectorAll('[data-trip]').forEach(b=>b.onclick=()=>showTrip(b.dataset.trip));
+  if($('#moreJ'))$('#moreJ').onclick=()=>{showAllJ=!showAllJ;home()};
 
   $('#bigT').onclick=()=>{const b=!document.body.classList.contains('big');document.body.classList.toggle('big',b);store.set('cc_big',b);home()};
   $('#tun').onclick=()=>{forceOff=!forceOff;net();loadWx();toast(forceOff?'Tunnel mode · no signal':'Back online · live times refreshed');home()};
@@ -621,23 +655,27 @@ function home(){
   if(svg){removeTrain();clearRoute();fitAll()}
   scrollTo({top:0});
 }
-function optCard(o,i,sel){return `<button class="trip opt ${sel?'sel':''} ${i===0?'best':''}" data-i="${i}" style="animation-delay:${i*70}ms">
-   <span class="t"><span class="olines">${i===0?'<span class="bestpill">Best</span>':''}${o.walk?'<span class="wk">🚶 '+o.walk+'</span><span class="ar">›</span>':''}${o.r.segs.map(g=>bullet(g.line)).join('<span class="ar">›</span>')}</span>
-   <small>${o.r.changes?plural(o.r.changes,'change'):'No changes'} · arrive ${eta(o.total)}</small></span>
+function optCard(o,i,sel,mode){return `<button class="trip opt ${sel?'sel':''} ${i===0?'best':''}" data-i="${i}" style="animation-delay:${i*70}ms">
+   <span class="t"><span class="olines">${i===0?`<span class="bestpill">${{shortest:'Fastest',reliable:'Most reliable',scenic:'Most scenic'}[mode]}</span>`:''}${o.walk?'<span class="wk">🚶 '+o.walk+'</span><span class="ar">›</span>':''}${o.r.segs.map(g=>bullet(g.line)).join('<span class="ar">›</span>')}</span>
+   <small>${o.r.changes?plural(o.r.changes,'change'):'No changes'} · arrive ${eta(o.total)}</small>
+   ${o.blurb?`<span class="blurb">${esc(o.blurb)}</span>`:''}</span>
    <span class="m"><span class="serif">${o.total}</span><small>min</small></span></button>`}
-function showOptions(opts,to,loc){
+let tripMode='shortest';
+function showOptions(get,to,loc){
+  let opts=get(tripMode),sel=-1;
   if(!opts.length){$('#view').innerHTML=`<button class="back" id="bk">← Back</button><div class="card">No route found in this prototype.</div>`;$('#bk').onclick=home;return}
-  let sel=-1;
   const pick=i=>{const o=opts[i];trips=trips.filter(t=>t.id!=='quick');trips.push({id:'quick',name:`To ${S[to]}`,from:o.from,to,walk:o.walk,note:'',opt:o});showTrip('quick')};
+  const bar=()=>{const i=sel<0?0:sel;setBar(`<button class="primary" id="goSel">${sel<0?'Take the '+{shortest:'fastest',reliable:'most reliable',scenic:'most scenic'}[tripMode]+' route':'Go'} · ${opts[i].total} min</button>`);$('#goSel').onclick=()=>pick(i)};
   const draw=()=>{
     $('#view').innerHTML=`<button class="back" id="bk">←</button>
      <h1 class="serif title">To <em style="color:var(--accent)">${esc(S[to])}</em></h1>
-     ${opts.map((o,i)=>optCard(o,i,i===sel)).join('')}`;
+     <div class="modes">${[['shortest','Shortest'],['reliable','Reliable'],['scenic','Scenic']].map(([k,l])=>`<button data-mode="${k}" class="${tripMode===k?'on':''}">${l}</button>`).join('')}</div>
+     ${opts.map((o,i)=>optCard(o,i,i===sel,tripMode)).join('')}`;
     $('#bk').onclick=()=>{qTo=null;home()};
+    document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{tripMode=b.dataset.mode;opts=get(tripMode);sel=-1;draw();bar();removeTrain();drawAll(opts,to)});
     document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;if(i===sel)return pick(i);sel=i;
       document.querySelectorAll('.opt').forEach(x=>x.classList.toggle('sel',+x.dataset.i===sel));removeTrain();drawRoute(opts[i].r,true);bar()});
   };
-  const bar=()=>{const i=sel<0?0:sel;setBar(`<button class="primary" id="goSel">${sel<0?'Take the best route':'Go'} · ${opts[i].total} min</button>`);$('#goSel').onclick=()=>pick(i)};
   draw();bar();removeTrain();drawAll(opts,to);scrollTo({top:0});
 }
 
