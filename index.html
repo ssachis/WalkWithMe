@@ -289,6 +289,11 @@ main#view h1,main#view .eyebrow{text-shadow:0 2px 18px rgba(0,0,0,.8)}
   #ride{background:rgba(12,14,18,.72)!important;backdrop-filter:blur(18px)!important}
   .bar{background:none}
 }
+.textbtn.inl{min-height:0;padding:0 0 0 6px;font-size:.85em;color:var(--faint);text-decoration:underline;text-underline-offset:3px}
+.field .k:empty{display:none}
+#toBox .field input{font-size:1.15em}
+#toBox .field::before{content:'';width:10px;height:10px;border-radius:50%;border:2px solid var(--accent);flex:none;margin:0 4px 0 2px}
+@media (max-width:899px){.mapbtns{bottom:auto;top:calc(110px + env(safe-area-inset-top));flex-direction:column}.mapbtns button{min-height:38px;width:38px}}
 </style>
 </head>
 <body>
@@ -576,9 +581,9 @@ function home(){
   setBar('');
   const on=isOn();
   $('#view').innerHTML=`
-   <div class="hero"><span class="eyebrow near ${on?'':'off'}" id="nearme"><i></i>${lastLoc?nearTxt(lastLoc):'Finding you…'}</span>
+   <div class="hero"><span class="eyebrow near ${on?'':'off'}" id="nearme"></span>
      <h1 class="serif">Where <em>to?</em></h1></div>
-   <div class="search glass"><div id="fromBox"></div><div id="toBox"></div><button class="swap" id="swap" aria-label="Swap">⇅</button></div>
+   <div class="search glass"><div id="toBox"></div></div><div id="fromBox" class="${qFrom?'':'hidden'}" style="margin-top:10px"></div>
    <div class="chips">${POPULAR.map((s,i)=>`<button class="chip" data-pop="${s}" style="animation-delay:${200+i*40}ms">${bullet(served[s][0])}${esc(S[s].replace(/–.*/,''))}</button>`).join('')}</div>
    <h2>Saved journeys</h2>
    ${trips.filter(t=>t.id!=='quick').map(t=>{const r=route(t.from,t.to);return`<button class="trip" data-trip="${t.id}">
@@ -588,15 +593,18 @@ function home(){
    <div class="foot"><button class="textbtn" id="tun">${forceOff?'Exit tunnel mode':'Preview tunnel mode'}</button><span>·</span><button class="textbtn" id="bigT">${document.body.classList.contains('big')?'Normal text':'Larger text'}</button></div>`;
   const go=async()=>{if(!qTo)return;
     if(qFrom){showOptions(options([{s:qFrom,walk:0}],qTo),qTo,null);return}
-    $('#view').insertAdjacentHTML('beforeend','');const fb=$('#fromBox .val');if(fb)fb.innerHTML='<span class="locdot"></span>Finding you…';
+    
     const loc=lastLoc||await locate();lastLoc=loc;showOptions(options(nearest(loc.lat,loc.lng),qTo),qTo,loc)};
-  if(qFrom){picker($('#fromBox'),qFrom,'Starting station',v=>{qFrom=v;if(!v)home();else go()},'From')}
-  else{$('#fromBox').innerHTML=`<div class="field"><span class="k">From</span><span class="val"><span class="locdot"></span>Current location</span><button class="x" id="pickFrom">Change</button></div>`;
-    const lv=$('#fromBox .val');if(lastLoc)lv.innerHTML='<span class="locdot"></span>'+locLabel(lastLoc);
-    else locate().then(l=>{lastLoc=l;const v=$('#fromBox .val');if(v&&!qFrom)v.innerHTML='<span class="locdot"></span>'+locLabel(l);const nm=$('#nearme');if(nm)nm.innerHTML='<i></i>'+nearTxt(l);loadWx()});
-    $('#pickFrom').onclick=()=>picker($('#fromBox'),null,'Starting station',v=>{qFrom=v;go()},'From')}
-  picker($('#toBox'),qTo,'Where are you going?',v=>{qTo=v;go()},'To');
-  $('#swap').onclick=()=>{if(!qFrom&&!qTo)return;[qFrom,qTo]=[qTo,qFrom];home();go()};
+  const nmUpd=()=>{const nm=$('#nearme');if(!nm)return;nm.innerHTML=qFrom?`<i></i>Starting from <b>${esc(S[qFrom])}</b> <button class="textbtn inl" id="useMe">use my location</button>`:`<i></i>${lastLoc?nearTxt(lastLoc):'Finding you…'} <button class="textbtn inl" id="chgFrom">change</button>`;
+    if($('#useMe'))$('#useMe').onclick=()=>{qFrom=null;home()};
+    if($('#chgFrom'))$('#chgFrom').onclick=()=>{const fb=$('#fromBox');fb.classList.remove('hidden');picker(fb,null,'Start from a different station',v=>{qFrom=v;home();go()},'From');fb.querySelector('input').focus()}};
+  nmUpd();if(!lastLoc)locate().then(l=>{lastLoc=l;nmUpd();loadWx()});
+
+
+
+
+  picker($('#toBox'),qTo,'Search your final destination',v=>{qTo=v;go()},'');
+
   document.querySelectorAll('[data-trip]').forEach(b=>b.onclick=()=>showTrip(b.dataset.trip));
 
   $('#bigT').onclick=()=>{const b=!document.body.classList.contains('big');document.body.classList.toggle('big',b);store.set('cc_big',b);home()};
