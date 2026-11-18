@@ -973,8 +973,9 @@ if(window.WWM_SIM){(function(){
   hud.querySelectorAll('[data-sp]').forEach(b=>b.onclick=()=>{speed=+b.dataset.sp;hud.querySelectorAll('[data-sp]').forEach(x=>x.classList.toggle('on',x===b))});
   $('#simRe').onclick=()=>location.reload();
   let vo=false;$('#simVo').onclick=()=>{vo=!vo;$('#simVo').classList.toggle('on',vo);$('#simVo').textContent=vo?'Narrating':'Narrate';if(vo)speak($('#simCap').textContent)};
-  const speak=t=>{if(!vo)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace('Watch again',''));u.rate=1.02*Math.min(speed,1.6);speechSynthesis.speak(u)}catch(e){}};
-  const sleep=ms=>new Promise(res=>{let t=0;const id=setInterval(()=>{if(!paused)t+=100*speed;if(t>=ms){clearInterval(id);res()}},100)});
+  const speak=t=>{if(!vo)return;try{const u=new SpeechSynthesisUtterance(t.replace('Watch again',''));u.rate=.95;speechSynthesis.speak(u)}catch(e){}};
+  const talking=()=>{try{return vo&&(speechSynthesis.speaking||speechSynthesis.pending)}catch(e){return false}};
+  const sleep=ms=>new Promise(res=>{let t=0;const id=setInterval(()=>{if(!paused&&!talking())t+=100*speed;if(t>=ms){clearInterval(id);res()}},100)});
   const cap=(t)=>{const c=$('#simCap');c.classList.remove('in');void c.offsetWidth;c.innerHTML=t;c.classList.add('in');speak(c.textContent)};
   async function intro(){const o=document.createElement('div');o.className='intro';document.body.appendChild(o);
     const cards=[['Underground, your phone <em>loses signal.</em>','The problem'],['Maps go blank. You miss your stop, <em>or your transfer.</em>','Every day in NYC'],['<em>WalkWithMe</em> works with zero signal.','Built for the NYC subway']];
