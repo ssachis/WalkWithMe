@@ -271,6 +271,24 @@ main#view::before{content:'';display:block;width:40px;height:4px;border-radius:9
 .foot{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:28px;color:var(--faint);font-size:.82em}
 .textbtn{background:none;min-height:36px;padding:4px 6px;color:var(--muted);font-weight:500;font-size:1em}
 .textbtn:hover{color:var(--accent)}
+
+/* callouts on the map */
+.callout{opacity:0;animation:fadein .6s forwards}
+.cl-box{fill:rgba(12,14,18,.82);stroke:rgba(232,199,122,.45);stroke-width:1}
+.cl-leg{stroke:rgba(232,199,122,.7);stroke-width:1.5;fill:none}
+.cl-1{font:600 12px Inter,sans-serif;fill:#F3EFE6}
+.cl-2{font:400 10.5px Inter,sans-serif;fill:#C9B98F}
+.cl-b{font:700 10px Helvetica,Arial,sans-serif}
+/* text floats on the map: no solid panel */
+main#view{background:linear-gradient(rgba(10,12,15,0),rgba(10,12,15,.55) 18%,rgba(10,12,15,.8))!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;border:0!important;box-shadow:none!important}
+main#view::before{background:rgba(255,255,255,.18)}
+main#view .card,main#view .trip,main#view .search,main#view .seg,main#view .stat{background:rgba(16,19,24,.55)!important;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+main#view h1,main#view .eyebrow{text-shadow:0 2px 18px rgba(0,0,0,.8)}
+@media (min-width:900px){
+  main#view{background:none!important;top:84px;bottom:12px;left:20px;width:min(430px,38vw);padding:20px 20px 120px}
+  #ride{background:rgba(12,14,18,.72)!important;backdrop-filter:blur(18px)!important}
+  .bar{background:none}
+}
 </style>
 </head>
 <body>
@@ -395,9 +413,9 @@ let vb={...FULL},svg,anim;
 const poly=pts=>pts.map(p=>pj(p[0],p[1]).join(',')).join(' ');
 const LAND={
  mn:[[40.700,-74.017],[40.712,-74.016],[40.730,-74.012],[40.752,-74.009],[40.772,-73.995],[40.800,-73.973],[40.835,-73.951],[40.840,-73.934],[40.810,-73.931],[40.798,-73.929],[40.780,-73.942],[40.760,-73.958],[40.742,-73.972],[40.728,-73.972],[40.711,-73.977],[40.706,-73.998]],
- bk:[[40.600,-74.040],[40.615,-74.036],[40.640,-74.026],[40.660,-74.012],[40.676,-74.020],[40.690,-74.005],[40.700,-73.996],[40.704,-73.976],[40.720,-73.963],[40.738,-73.961],[40.752,-73.948],[40.770,-73.937],[40.790,-73.915],[40.800,-73.890],[40.800,-73.820],[40.590,-73.820],[40.590,-74.040]],
- nj:[[40.84,-74.09],[40.84,-73.962],[40.80,-73.990],[40.76,-74.016],[40.73,-74.030],[40.70,-74.045],[40.66,-74.075],[40.60,-74.09]],
- bx:[[40.84,-73.932],[40.812,-73.928],[40.800,-73.915],[40.805,-73.880],[40.84,-73.86]]
+ bk:[[40.600,-74.040],[40.615,-74.036],[40.640,-74.026],[40.660,-74.012],[40.676,-74.020],[40.690,-74.005],[40.700,-73.996],[40.704,-73.976],[40.720,-73.963],[40.738,-73.961],[40.752,-73.948],[40.770,-73.937],[40.790,-73.915],[40.800,-73.890],[40.80,-73.40],[40.30,-73.40],[40.30,-74.03],[40.590,-74.040]],
+ nj:[[41.2,-74.6],[41.2,-73.975],[40.84,-73.962],[40.80,-73.990],[40.76,-74.016],[40.73,-74.030],[40.70,-74.045],[40.66,-74.075],[40.60,-74.09],[40.30,-74.12],[40.30,-74.6]],
+ bx:[[40.84,-73.932],[40.812,-73.928],[40.800,-73.915],[40.805,-73.880],[40.80,-73.40],[41.2,-73.40],[41.2,-73.958],[40.84,-73.951]]
 };
 function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
 function buildMap(){
@@ -459,9 +477,17 @@ function drawRoute(r,gold=true){clearRoute();svg.classList.add('focus');svg.clas
     el('polyline',{points:pts,class:'rline',stroke:c,pathLength:1,style:`--g:${gold?'#E8C77A':c};animation-delay:${i*.55}s`},g);
     el('polyline',{points:pts,class:'rflow',pathLength:1,style:`animation-delay:0s,${1.4+i*.55}s`},g);
     sg.stops.forEach((s,j)=>{const[x,y]=xy(s);el('circle',{cx:x,cy:y,class:'rst','data-big':(j===0||j===sg.n)?1:''},g)})});
-  labels([r.segs[0].stops[0],r.segs[r.segs.length-1].stops.slice(-1)[0]]);
+  if(gold){r.segs.forEach((sg,i)=>{const d=LINES[sg.line][sg.dir];callout(sg.stops[0],sg.line,i?`Switch to the ${sg.line}`:`Board the ${sg.line}`,d.sign,i?1:0)});
+    const last=r.segs[r.segs.length-1];callout(last.stops[last.n],null,'Get off',S[last.stops[last.n]],2)}
+  else labels([r.segs[0].stops[0],r.segs[r.segs.length-1].stops.slice(-1)[0]]);
   pin(r.segs[0].stops[0],'start');pin(r.segs[r.segs.length-1].stops.slice(-1)[0],'end');
   fitStations(r.segs.flatMap(sg=>sg.stops));apply()}
+function callout(s,line,t1,t2,k){const[x,y]=xy(s);const g=el('g',{class:'pin callout','data-x':x,'data-y':y,style:`animation-delay:${1.2+k*.25}s`},$('#gpin'));
+  const w=Math.max(t1.length*7.4,t2.length*6.4)+(line?40:24),side=k===2?-1:1,ox=side>0?16:-16-w;
+  el('path',{d:`M0 0 L${side*16} -14`,class:'cl-leg'},g);
+  el('rect',{x:ox,y:-36,width:w,height:40,rx:12,class:'cl-box'},g);
+  if(line){el('circle',{cx:ox+16,cy:-16,r:9,fill:LINES[line].c},g);const b=el('text',{x:ox+16,y:-12.5,'text-anchor':'middle',class:'cl-b',fill:LINES[line].t},g);b.textContent=line}
+  const tx=ox+(line?32:12);const a1=el('text',{x:tx,y:-20,class:'cl-1'},g);a1.textContent=t1;const a2=el('text',{x:tx,y:-6,class:'cl-2'},g);a2.textContent=t2;apply()}
 function drawAll(opts,to){clearRoute();svg.classList.add('focus');svg.classList.remove('goldmode');const g=$('#groute');
   opts.forEach((o,k)=>o.r.segs.forEach(sg=>{const pts=sg.stops.map(s=>xy(s).join(',')).join(' '),c=LINES[sg.line].c;
     el('polyline',{points:pts,class:'rblink',stroke:c,pathLength:1,style:`--g:${c};animation-delay:${k*.12}s,${.9+k*.33}s`},g)}));
