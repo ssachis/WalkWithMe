@@ -359,6 +359,15 @@ main#view .trip:not(.opt) .bullet{font-size:.75em}
 .chips .chip:not(.chipmore){flex:0 1 auto!important}
 .chipmore{flex:none!important;width:38px;padding:0!important;justify-content:center;color:var(--accent)!important}
 .chipmore svg{transition:transform .35s var(--ease)}
+
+/* airy hero */
+.hero{padding-top:8px}
+.hero .eyebrow.near{margin-bottom:2px}
+.hero h1{margin:14px 0 26px!important;letter-spacing:-.02em}
+.search{box-shadow:0 18px 50px -24px rgba(0,0,0,.8)}
+.chips{padding:16px 0 0!important}
+main#view h2{margin:40px 0 14px!important}
+.more{margin:16px auto 4px!important}
 </style>
 </head>
 <body>
@@ -605,7 +614,7 @@ let trips=store.get('cc_trips2',DEFAULT_TRIPS);
 const saveTrips=()=>store.set('cc_trips2',trips.filter(t=>t.id!=='quick'));
 const plural=(n,w)=>`${n} ${w}${n===1?'':'s'}`;
 
-let forceOff=false;const isOn=()=>navigator.onLine&&!forceOff;
+let forceOff=/tunnel/.test(location.hash);addEventListener('hashchange',()=>{const f=/tunnel/.test(location.hash);if(f!==forceOff){forceOff=f;net();loadWx();toast(f?'Tunnel mode · no signal':'Back online · live times refreshed');if(!ride)home()}});const isOn=()=>navigator.onLine&&!forceOff;
 const eta=m=>new Date(Date.now()+m*60000).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
 const POPULAR=['timessq','grandcentral','columbus','unionsq','heraldsq','atlantic','w4','nyu8','bedford','s116_1'];
 const PLBL={timessq:'Times Sq',grandcentral:'Grand Central',columbus:'Columbus Cir',unionsq:'Union Sq',heraldsq:'Herald Sq',atlantic:'Barclays Ctr',w4:'W 4 St',nyu8:'8 St–NYU',bedford:'Bedford Av',s116_1:'Columbia'};
@@ -679,7 +688,7 @@ function home(){
      <span class="lines">${r?[...new Set(r.segs.map(g=>g.line))].map(bullet).join(''):''}</span>
      <span class="t"><b>${esc(t.name)}</b><small>${esc(S[t.from])} → ${esc(S[t.to])}</small></span>
      <span class="m">${r?`<span class="serif">${r.mins}</span><small>min</small>`:''}</span></button>`}).join('')+(sv.length>2?`<button class="more" id="moreJ" aria-label="${showAllJ?'Show fewer journeys':'Show more journeys'}"><svg viewBox="0 0 24 24" width="20" height="20" style="transform:rotate(${showAllJ?180:0}deg)"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`:'')})()}
-   <div class="foot"><button class="textbtn" id="tun">${forceOff?'Exit tunnel mode':'Preview tunnel mode'}</button><span>·</span><button class="textbtn" id="bigT">${document.body.classList.contains('big')?'Normal text':'Larger text'}</button></div>`;
+   `;
   const go=async()=>{if(!qTo)return;
     if(qFrom){const o=[{s:qFrom,walk:0}],t=qTo;showOptions(m=>options(o,t,m),t,null);return}
     const loc=lastLoc||await locate();lastLoc=loc;const o=nearest(loc.lat,loc.lng),t=qTo;showOptions(m=>options(o,t,m),t,loc)};
@@ -697,8 +706,8 @@ function home(){
   $('#moreP').onclick=()=>{showAllP=!showAllP;home()};
   if($('#moreJ'))$('#moreJ').onclick=()=>{showAllJ=!showAllJ;home()};
 
-  $('#bigT').onclick=()=>{const b=!document.body.classList.contains('big');document.body.classList.toggle('big',b);store.set('cc_big',b);home()};
-  $('#tun').onclick=()=>{forceOff=!forceOff;net();loadWx();toast(forceOff?'Tunnel mode · no signal':'Back online · live times refreshed');home()};
+  if(false)$('#bigT').onclick=()=>{const b=!document.body.classList.contains('big');document.body.classList.toggle('big',b);store.set('cc_big',b);home()};
+  if(false)$('#tun').onclick=()=>{forceOff=!forceOff;net();loadWx();toast(forceOff?'Tunnel mode · no signal':'Back online · live times refreshed');home()};
   document.querySelectorAll('[data-pop]').forEach(b=>b.onclick=()=>{qTo=b.dataset.pop;go()});
 
   if(svg){removeTrain();clearRoute();fitAll()}
