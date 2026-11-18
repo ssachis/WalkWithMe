@@ -429,7 +429,7 @@ body.hasbar main#view{padding-bottom:96px!important}
 </head>
 <body>
 <div id="map">
-  <div class="mapchip glass"><span class="serif">Walk<em>With</em>Me</span><small>Built for NYC</small></div>
+  <div class="mapchip glass"><span class="serif">Walk<em>With</em>Me</span><small>Built for the NYC subway</small></div>
   <span id="net" class="glass eyebrow"><i></i><span>Online</span></span>
   <span id="wx" class="glass hidden"></span>
   <div id="wxfx"></div>
@@ -969,7 +969,7 @@ if(window.WWM_SIM){(function(){
   const sleep=ms=>new Promise(res=>{let t=0;const id=setInterval(()=>{if(!paused)t+=100*speed;if(t>=ms){clearInterval(id);res()}},100)});
   const cap=(t)=>{const c=$('#simCap');c.classList.remove('in');void c.offsetWidth;c.innerHTML=t;c.classList.add('in');speak(c.textContent)};
   async function intro(){const o=document.createElement('div');o.className='intro';document.body.appendChild(o);
-    const cards=[['Underground, your phone <em>loses signal.</em>','The problem'],['Maps go blank. You miss your stop, <em>or your transfer.</em>','Every day in NYC'],['<em>WalkWithMe</em> works with zero signal.','Built for NYC']];
+    const cards=[['Underground, your phone <em>loses signal.</em>','The problem'],['Maps go blank. You miss your stop, <em>or your transfer.</em>','Every day in NYC'],['<em>WalkWithMe</em> works with zero signal.','Built for the NYC subway']];
     for(const [t,k] of cards){o.innerHTML=`<div><h2>${t}</h2><small>${k}</small></div>`;speak(o.textContent);await sleep(2600)}
     o.style.opacity=0;await sleep(900);o.remove()}
   const stat=()=>{$('#sSig').innerHTML=isOn()?'<i class="g"></i>Online':'<i class="r"></i>No signal';$('#sWx').textContent=`${simWx.temp}° · ${WXL[wxKind(simWx.code)]}`};
@@ -1006,7 +1006,7 @@ if(window.WWM_SIM){(function(){
       if(!last){cap(`Step off at <b>${S[g.stops[g.n]]}</b> to switch trains.`);await sleep(2600);click('#act');continue}
       signal(true,'Back online · live times refreshed');$('#sLoc').textContent='GPS · Grand Central';
       cap('Arrived at <b>Grand Central</b>. Back at street level, live again.');await sleep(3600);click('#act');break}
-    await sleep(1200);cap('That\'s WalkWithMe: built for NYC, works with zero signal. <button class="simagain" onclick="location.reload()">Watch again</button>');
+    await sleep(1200);cap('That\'s WalkWithMe: built for the NYC subway, works with zero signal. <button class="simagain" onclick="location.reload()">Watch again</button>');
   }
   const st=document.createElement('div');st.className='intro';st.innerHTML=`<div><h2>Walk<em>With</em>Me</h2><small>A 45-second ride simulation</small>
     <div class="startbtns"><button class="primary" id="stVo">▶&nbsp; Play with narration</button><button class="ghost" id="stSil">Play silent</button></div></div>`;document.body.appendChild(st);
