@@ -368,6 +368,8 @@ main#view .trip:not(.opt) .bullet{font-size:.75em}
 .chips{padding:16px 0 0!important}
 main#view h2{margin:40px 0 14px!important}
 .more{margin:16px auto 4px!important}
+body.hasbar main#view{padding-bottom:150px!important}
+@media (min-width:900px){.bar{background:linear-gradient(rgba(10,12,15,0),rgba(10,12,15,.92) 40%)!important;padding-top:34px!important}}
 </style>
 </head>
 <body>
@@ -670,7 +672,7 @@ function picker(box,val,ph,onPick,key){
 }
 
 /* ===== Views ===== */
-function setBar(html){const b=$('#bar');if(!html){b.classList.add('hidden');return}$('#barInner').innerHTML=html;b.classList.remove('hidden')}
+function setBar(html){document.body.classList.toggle('hasbar',!!html);const b=$('#bar');if(!html){b.classList.add('hidden');return}$('#barInner').innerHTML=html;b.classList.remove('hidden')}
 let qFrom=null,qTo=null,lastLoc=null,showAllJ=false;
 function nearTxt(loc){const n=nearest(loc.lat,loc.lng,1)[0];return `You're near <b>${esc(S[n.s])}</b>${loc.demo?' <span class="dm">demo</span>':''}`}
 function locLabel(loc){const n=nearest(loc.lat,loc.lng,1)[0];return `Your location <span class="muted locname">(${esc(S[n.s])})</span>`}
