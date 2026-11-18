@@ -978,7 +978,7 @@ if(window.WWM_SIM){(function(){
   const sleep=ms=>new Promise(res=>{let t=0;const id=setInterval(()=>{if(!paused&&!talking())t+=100*speed;if(t>=ms){clearInterval(id);res()}},100)});
   const cap=(t)=>{const c=$('#simCap');c.classList.remove('in');void c.offsetWidth;c.innerHTML=t;c.classList.add('in');speak(c.textContent)};
   async function intro(){const o=document.createElement('div');o.className='intro';document.body.appendChild(o);
-    const cards=[['Underground, your phone <em>loses signal.</em>','The problem'],['Maps go blank. You miss your stop, <em>or your transfer.</em>','Every day in NYC'],['<em>WalkWithMe</em> works with zero signal.','Built for the NYC subway']];
+    const cards=[['Underground, your phone loses signal. <em>Maps go blank.</em>','The problem'],['<em>WalkWithMe</em> works with zero signal.','Built for the NYC subway']];
     for(const [t,k] of cards){o.innerHTML=`<div><h2>${t}</h2><small>${k}</small></div>`;speak(o.textContent);await sleep(2600)}
     o.style.opacity=0;await sleep(900);o.remove()}
   const stat=()=>{$('#sSig').innerHTML=isOn()?'<i class="g"></i>Online':'<i class="r"></i>No signal';$('#sWx').textContent=`${simWx.temp}° · ${WXL[wxKind(simWx.code)]}`};
@@ -989,33 +989,26 @@ if(window.WWM_SIM){(function(){
   async function run(){
     await intro();
     lastLoc=SIMLOC;qFrom=null;qTo=null;home();stat();
-    cap('A rider at <b>77 St</b> in Bay Ridge. GPS finds the nearest station. Online, 52° and clear.');await sleep(4200);
-    cap('They type where they want to go.');await sleep(1200);
-    await typeIn('Grand Cen');await sleep(900);click('#toBox .picks button');
-    await sleep(1500);cap('Every possible route blinks on the map.');await sleep(2600);
-    click('[data-mode="scenic"]');cap('They choose <b>Scenic</b>: the Q crosses the Manhattan Bridge.');await sleep(2800);
-    click('.opt[data-i="0"]');cap('Tap once: the route locks in gold, with what to do at each step.');await sleep(3000);
-    click('.opt[data-i="0"]');await sleep(1500);
-    cap('Online: <b>live</b> arrival times, saved on the phone for later.');await sleep(3200);
-    const sp=$('.special');if(sp){sp.scrollIntoView({behavior:'smooth',block:'center'});cap('Scenic routes explain what makes them special.');await sleep(3200);$('main').scrollTo({top:0,behavior:'smooth'})}
-    await sleep(800);click('#go');await sleep(1200);
-    cap('Ride mode. The rider heads down to the platform.');await sleep(2400);
-    signal(false,'Tunnel · no signal');cap('Underground: <b>signal lost</b>. Arrival times switch to the last saved check.');await sleep(3600);
-    let bridged=false,under=false;
-    while(ride){
-      const g=ride.r.segs[ride.seg],left=g.n-ride.i,last=ride.seg===ride.r.segs.length-1;
-      if(!ride.onTrain){cap(ride.seg?`Change to the <b>${g.line}</b> without leaving the station.`:`Board the <b>${g.line}</b>. The front of the train reads ${LINES[g.line][g.dir].last}.`);await sleep(2800);click('#act');await sleep(900);
-        if(g.line==='Q'&&!bridged){bridged=true;await sleep(1400);signal(true,'Back online · live times refreshed');weather(63,49);$('#sLoc').textContent='GPS · Manhattan Bridge';
-          cap('Up on the <b>Manhattan Bridge</b>: signal is back, times refresh, and it has started <b>raining</b> outside.');await sleep(4200)}
-        continue}
-      if(left>0){
-        if(bridged&&!under&&g.line==='Q'&&ride.i>=1){under=true;signal(false,'Tunnel · no signal');$('#sLoc').textContent='Counting stops';cap('Back underground. The app keeps counting stops with no signal.');await sleep(2600)}
-        else cap(left===1?`Next stop is <b>${S[g.stops[ride.i+1]]}</b>. Get ready.`:`${plural(left,'stop')} to go. Next: ${S[g.stops[ride.i+1]]}.`);
-        await sleep(left===1?2600:1700);click('#act');$('#sLoc').textContent=(under||!bridged)?'Counting stops':'GPS';continue}
-      if(!last){cap(`Step off at <b>${S[g.stops[g.n]]}</b> to switch trains.`);await sleep(2600);click('#act');continue}
-      signal(true,'Back online · live times refreshed');$('#sLoc').textContent='GPS · Grand Central';
-      cap('Arrived at <b>Grand Central</b>. Back at street level, live again.');await sleep(3600);click('#act');break}
-    await sleep(1200);cap('That\'s WalkWithMe: built for the NYC subway, works with zero signal. <button class="simagain" onclick="location.reload()">Watch again</button>');
+    cap('Type where you want to go. WalkWithMe finds your nearest station and every route.');
+    await typeIn('Grand Cen');await sleep(500);click('#toBox .picks button');await sleep(1800);
+    click('[data-mode="scenic"]');await sleep(900);click('.opt[data-i="0"]');
+    cap('Pick fastest, most reliable, or scenic. Your route lights up in gold.');await sleep(1600);
+    click('.opt[data-i="0"]');await sleep(900);click('#go');await sleep(900);
+    signal(false,'Tunnel · no signal');
+    cap('Underground, the signal drops. Your route, stops and saved train times keep working.');
+    const step=async(ms)=>{while(ride){const g=ride.r.segs[ride.seg],left=g.n-ride.i,last=ride.seg===ride.r.segs.length-1;
+        if(!ride.onTrain){click('#act');await sleep(ms);if(ride&&ride.r.segs[ride.seg].line==='Q')return 'Q';continue}
+        if(left>0){click('#act');await sleep(ms);continue}
+        if(!last){click('#act');await sleep(ms);continue}
+        return 'end'}};
+    let r=await step(350);
+    if(r==='Q'){signal(true,'Back online · live times refreshed');weather(63,49);
+      cap('Back above ground on the bridge, it refreshes live times, and even tells you it\'s raining outside.');await sleep(1200);
+      signal(false,'Tunnel · no signal');r=await step(350)}
+    signal(true,'Back online · live times refreshed');
+    cap('It counts your stops and tells you exactly where to change and get off.');await sleep(800);
+    click('#act');await sleep(600);
+    cap('WalkWithMe. Built for the NYC subway, it works with zero signal.');await sleep(1500);
   }
   const st=document.createElement('div');st.className='intro';st.innerHTML=`<div><h2>Walk<em>With</em>Me</h2><small>A 45-second ride simulation</small>
     <div class="startbtns"><button class="primary" id="stVo">▶&nbsp; Play with narration</button><button class="ghost" id="stSil">Play silent</button></div></div>`;document.body.appendChild(st);
