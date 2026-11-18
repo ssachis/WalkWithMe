@@ -392,11 +392,42 @@ body.hasbar main#view{padding-bottom:150px!important}
 .stack span::after{content:' more'}
 .tripblurb{margin:14px 4px 0;font-family:'Instrument Serif',serif;font-style:italic;font-size:1.1em;color:#C9B98F;line-height:1.35}
 .stack span{display:none!important}.stack{height:30px!important}
+
+/* compact action pill */
+.bar{background:none!important;padding:0 16px calc(16px + env(safe-area-inset-bottom))!important;pointer-events:none}
+.bar .inner{justify-content:flex-end;max-width:none!important}
+.bar .inner>*{flex:none!important;pointer-events:auto;min-height:48px;padding:0 24px;border-radius:999px;font-size:.95em}
+.bar .ghost{background:rgba(16,19,24,.8)!important;backdrop-filter:blur(14px)}
+.bar .primary{box-shadow:0 12px 34px -10px rgba(232,217,184,.55),0 0 0 1px rgba(255,255,255,.08) inset}
+body.hasbar main#view{padding-bottom:96px!important}
+@media (min-width:900px){
+  .bar{left:auto!important;right:84px!important;width:auto!important;bottom:28px!important;padding:0!important;border-radius:0}
+  body.hasbar main#view{padding-bottom:30px!important}
+}
+
+/* simulation HUD: compact, right side */
+.simhud{position:fixed;z-index:60;right:16px;top:70px;width:300px;border-radius:18px;padding:10px 12px;box-shadow:0 16px 40px rgba(0,0,0,.5);border-color:rgba(232,199,122,.28)!important;font-size:13px}
+@media (max-width:899px){.simhud{top:auto;bottom:76px;right:10px;width:min(300px,calc(100vw - 20px))}}
+.simrow{display:flex;align-items:center;gap:6px}
+.simtag{font-size:.7em;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#16120A;background:linear-gradient(135deg,#F6DC94,#D4A84B);padding:3px 8px;border-radius:99px;margin-right:auto}
+.simhud button{min-height:26px;padding:2px 8px;border-radius:8px;background:var(--soft);border:1px solid var(--line);font-size:.85em;font-weight:600}
+.simsp{display:flex;gap:3px}.simsp button.on{background:rgba(232,199,122,.18);color:#F3DFA6;border-color:rgba(232,199,122,.4)}
+.simcap{margin:8px 2px 6px;line-height:1.4;color:#EDE8DE;min-height:2.8em}
+.simcap.in{animation:rise .5s var(--ease) both}.simcap b{color:#F3DFA6}
+.simstat{display:flex;gap:10px;font-size:.82em;color:var(--muted);flex-wrap:wrap}
+.simstat i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px}.simstat i.g{background:#7EE2A8;box-shadow:0 0 8px #7EE2A8}.simstat i.r{background:#E07A5F;box-shadow:0 0 8px #E07A5F}
+.simagain{margin-left:6px;background:var(--accent)!important;color:#16120A;border:0!important}
+
+.calm .ln.alive{stroke:var(--g)!important;opacity:1!important;filter:drop-shadow(0 0 7px var(--g))!important;transition:stroke 1.2s,opacity 1.2s,filter 1.2s}
+.intro{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;text-align:center;background:radial-gradient(80% 60% at 50% 40%,rgba(20,24,32,.92),rgba(6,8,11,.97));transition:opacity .9s}
+.intro h2{all:unset;display:block;font-family:'Instrument Serif',serif;font-size:clamp(34px,5vw,64px);line-height:1.1;color:#F3EFE6;max-width:900px;padding:0 24px;animation:rise .9s var(--ease) both}
+.intro h2 em{color:#E8C77A}.intro small{display:block;margin-top:18px;font:600 12px Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.simhud{width:340px!important}.simhud button{padding:2px 7px!important}#simVo.on{background:rgba(126,226,168,.15);color:#7EE2A8}
 </style>
 </head>
 <body>
 <div id="map">
-  <div class="mapchip glass"><span class="serif">Walk<em>With</em>Me</span><small>Built for the NYC subway</small></div>
+  <div class="mapchip glass"><span class="serif">Walk<em>With</em>Me</span><small>Built for NYC</small></div>
   <span id="net" class="glass eyebrow"><i></i><span>Online</span></span>
   <span id="wx" class="glass hidden"></span>
   <div id="wxfx"></div>
@@ -836,7 +867,7 @@ function rideItems(){const out=[];ride.r.segs.forEach((g,K)=>{for(let i=K?1:0;i<
 function curItem(){const it=rideItems();let s=ride.seg,i=ride.i;if(i===0&&s>0){s--;i=ride.r.segs[s].n}return it.findIndex(x=>x.seg===s&&x.i===i)}
 function setPos(it){ride.seg=it.seg;ride.i=it.i;ride.onTrain=!(it.seg===0&&it.i===0);drawRide()}
 let watchId=null;
-function startGPS(){try{if(!navigator.geolocation)return;watchId=navigator.geolocation.watchPosition(p=>{if(!ride||p.coords.accuracy>250)return;
+function startGPS(){if(window.WWM_SIM)return;try{if(!navigator.geolocation)return;watchId=navigator.geolocation.watchPosition(p=>{if(!ride||p.coords.accuracy>250)return;
   const items=rideItems();let best=-1,bm=1e9;items.forEach((it,k)=>{const m=meters(p.coords.latitude,p.coords.longitude,P[it.s][0],P[it.s][1]);if(m<bm){bm=m;best=k}});
   if(bm<200&&best>curItem()){setPos(items[best]);toast('Located you · '+S[items[best].s])}},()=>{},{enableHighAccuracy:true,maximumAge:15000})}catch(e){}}
 function stopGPS(){try{if(watchId!==null)navigator.geolocation.clearWatch(watchId)}catch(e){}watchId=null}
@@ -907,8 +938,77 @@ addEventListener('online',()=>{net();loadWx();toast('Back online · live times r
 if(store.get('cc_big',false))document.body.classList.add('big');
 buildMap();
 $('#zin').onclick=()=>zoomBy(.7);$('#zout').onclick=()=>zoomBy(1.4);$('#zfit').onclick=()=>{ride&&$('#train')?followTrain($('#train').dataset.s):fitAll()};
-net();home();loadWx();setInterval(loadWx,600000);addEventListener('hashchange',loadWx);
-try{if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude/.test(location.host))navigator.serviceWorker.register('./sw.js')}catch(e){}
+net();home();
+setInterval(()=>{if(!svg||svg.classList.contains('focus')||!svg.classList.contains('calm'))return;const ls=[...svg.querySelectorAll('.ln')];const l=ls[Math.floor(Math.random()*ls.length)];l.classList.add('alive');setTimeout(()=>l.classList.remove('alive'),2200)},1300);loadWx();setInterval(loadWx,600000);addEventListener('hashchange',loadWx);
+try{if(!window.WWM_SIM&&'serviceWorker' in navigator&&location.protocol==='https:'&&!/claude/.test(location.host))navigator.serviceWorker.register('./sw.js')}catch(e){}
+
+/* ===== Simulation (only on /simulation/) ===== */
+if(window.WWM_SIM){(function(){
+  speakOn=false;
+  const SIMLOC={lat:40.6292,lng:-74.0255,label:'Demo rider'};lastLoc=SIMLOC;
+  window.locate=locate=()=>Promise.resolve(SIMLOC);
+  let simWx={t:Date.now(),temp:52,code:0};
+  window.loadWx=loadWx=()=>{if(isOn()){simWx.t=Date.now()}paintWx(simWx,!isOn())};
+  try{Object.keys(localStorage).filter(k=>/^cc_(ride|arr)_/.test(k)).forEach(k=>localStorage.removeItem(k))}catch(e){}
+  let speed=1,paused=false;
+  const hud=document.createElement('div');hud.className='simhud glass';
+  hud.innerHTML=`<div class="simrow"><span class="simtag">Simulation</span>
+    <button id="simPlay" aria-label="Pause">❚❚</button>
+    <span class="simsp">${[1,2,4].map(s=>`<button data-sp="${s}" class="${s===1?'on':''}">${s}×</button>`).join('')}</span>
+    <button id="simRe" aria-label="Restart">↺</button><button id="simVo">Narrate</button></div>
+    <div class="simcap" id="simCap">Starting…</div>
+    <div class="simstat"><span id="sSig">● Online</span><span id="sWx">52° · Clear</span><span id="sLoc">GPS · 77 St</span></div>`;
+  document.body.appendChild(hud);
+  $('#simPlay').onclick=()=>{paused=!paused;$('#simPlay').textContent=paused?'▶':'❚❚'};
+  hud.querySelectorAll('[data-sp]').forEach(b=>b.onclick=()=>{speed=+b.dataset.sp;hud.querySelectorAll('[data-sp]').forEach(x=>x.classList.toggle('on',x===b))});
+  $('#simRe').onclick=()=>location.reload();
+  let vo=false;$('#simVo').onclick=()=>{vo=!vo;$('#simVo').classList.toggle('on',vo);$('#simVo').textContent=vo?'Narrating':'Narrate';if(vo)speak($('#simCap').textContent)};
+  const speak=t=>{if(!vo)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace('Watch again',''));u.rate=1.02*Math.min(speed,1.6);speechSynthesis.speak(u)}catch(e){}};
+  const sleep=ms=>new Promise(res=>{let t=0;const id=setInterval(()=>{if(!paused)t+=100*speed;if(t>=ms){clearInterval(id);res()}},100)});
+  const cap=(t)=>{const c=$('#simCap');c.classList.remove('in');void c.offsetWidth;c.innerHTML=t;c.classList.add('in');speak(c.textContent)};
+  async function intro(){const o=document.createElement('div');o.className='intro';document.body.appendChild(o);
+    const cards=[['Underground, your phone <em>loses signal.</em>','The problem'],['Maps go blank. You miss your stop, <em>or your transfer.</em>','Every day in NYC'],['<em>WalkWithMe</em> works with zero signal.','Built for NYC']];
+    for(const [t,k] of cards){o.innerHTML=`<div><h2>${t}</h2><small>${k}</small></div>`;speak(o.textContent);await sleep(2600)}
+    o.style.opacity=0;await sleep(900);o.remove()}
+  const stat=()=>{$('#sSig').innerHTML=isOn()?'<i class="g"></i>Online':'<i class="r"></i>No signal';$('#sWx').textContent=`${simWx.temp}° · ${WXL[wxKind(simWx.code)]}`};
+  const click=q=>{const e=$(q);if(e)e.click();return !!e};
+  const signal=(on,msg)=>{forceOff=!on;net();loadWx();if($('#arrBox'))refreshArr();toast(msg);stat()};
+  const weather=(code,temp)=>{simWx={t:Date.now(),temp,code};loadWx();stat()};
+  async function typeIn(text){const i=$('#toBox input');for(const ch of text){i.value+=ch;i.dispatchEvent(new Event('input'));await sleep(110)}}
+  async function run(){
+    await intro();
+    lastLoc=SIMLOC;qFrom=null;qTo=null;home();stat();
+    cap('A rider at <b>77 St</b> in Bay Ridge. GPS finds the nearest station. Online, 52° and clear.');await sleep(4200);
+    cap('They type where they want to go.');await sleep(1200);
+    await typeIn('Grand Cen');await sleep(900);click('#toBox .picks button');
+    await sleep(1500);cap('Every possible route blinks on the map.');await sleep(2600);
+    click('[data-mode="scenic"]');cap('They choose <b>Scenic</b>: the Q crosses the Manhattan Bridge.');await sleep(2800);
+    click('.opt[data-i="0"]');cap('Tap once: the route locks in gold, with what to do at each step.');await sleep(3000);
+    click('.opt[data-i="0"]');await sleep(1500);
+    cap('Online: <b>live</b> arrival times, saved on the phone for later.');await sleep(3200);
+    const sp=$('.special');if(sp){sp.scrollIntoView({behavior:'smooth',block:'center'});cap('Scenic routes explain what makes them special.');await sleep(3200);$('main').scrollTo({top:0,behavior:'smooth'})}
+    await sleep(800);click('#go');await sleep(1200);
+    cap('Ride mode. The rider heads down to the platform.');await sleep(2400);
+    signal(false,'Tunnel · no signal');cap('Underground: <b>signal lost</b>. Arrival times switch to the last saved check.');await sleep(3600);
+    let bridged=false,under=false;
+    while(ride){
+      const g=ride.r.segs[ride.seg],left=g.n-ride.i,last=ride.seg===ride.r.segs.length-1;
+      if(!ride.onTrain){cap(ride.seg?`Change to the <b>${g.line}</b> without leaving the station.`:`Board the <b>${g.line}</b>. The front of the train reads ${LINES[g.line][g.dir].last}.`);await sleep(2800);click('#act');await sleep(900);
+        if(g.line==='Q'&&!bridged){bridged=true;await sleep(1400);signal(true,'Back online · live times refreshed');weather(63,49);$('#sLoc').textContent='GPS · Manhattan Bridge';
+          cap('Up on the <b>Manhattan Bridge</b>: signal is back, times refresh, and it has started <b>raining</b> outside.');await sleep(4200)}
+        continue}
+      if(left>0){
+        if(bridged&&!under&&g.line==='Q'&&ride.i>=1){under=true;signal(false,'Tunnel · no signal');$('#sLoc').textContent='Counting stops';cap('Back underground. The app keeps counting stops with no signal.');await sleep(2600)}
+        else cap(left===1?`Next stop is <b>${S[g.stops[ride.i+1]]}</b>. Get ready.`:`${plural(left,'stop')} to go. Next: ${S[g.stops[ride.i+1]]}.`);
+        await sleep(left===1?2600:1700);click('#act');$('#sLoc').textContent=(under||!bridged)?'Counting stops':'GPS';continue}
+      if(!last){cap(`Step off at <b>${S[g.stops[g.n]]}</b> to switch trains.`);await sleep(2600);click('#act');continue}
+      signal(true,'Back online · live times refreshed');$('#sLoc').textContent='GPS · Grand Central';
+      cap('Arrived at <b>Grand Central</b>. Back at street level, live again.');await sleep(3600);click('#act');break}
+    await sleep(1200);cap('That\'s WalkWithMe: built for NYC, works with zero signal. <button class="simagain" onclick="location.reload()">Watch again</button>');
+  }
+  setTimeout(run,300);
+})()}
+
 </script>
 </body>
 </html>
