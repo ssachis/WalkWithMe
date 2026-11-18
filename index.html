@@ -739,10 +739,11 @@ function showTrip(id){
    </div>
    ${liveBox(r.segs[0].stops[0],r.segs[0].line,r.segs[0].dir)}
    ${on?`<a class="linkout" href="${gmaps(t.from,t.to)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>`:''}
-   <h2>Good to know</h2>
-   <div class="card tips">${tipsFor(r).map(x=>`<p><i></i><span>${x}</span></p>`).join('')}</div>
    <h2>Your stations</h2>
    <div class="card" style="padding:18px 18px 8px">${timeline(r,t,walk)}</div>
+   <h2>Good to know</h2>
+   <div class="card tips">${tipsFor(r).map(x=>`<p><i></i><span>${x}</span></p>`).join('')}</div>
+
    ${id==='quick'?'':`<button class="textbtn" id="del" style="margin:10px auto 0;display:block">Remove journey</button>`}`;
   $('#bk').onclick=()=>{if(id==='quick'&&qTo){qTo=null}home()};
   if($('#save'))$('#save').onclick=()=>$('#star')&&$('#star').click();
