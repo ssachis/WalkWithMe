@@ -324,6 +324,17 @@ main#view h1,main#view .eyebrow{text-shadow:0 2px 18px rgba(0,0,0,.8)}
 .trip .lines .bullet{margin-left:-8px}.trip .lines .bullet:first-child{margin-left:0}
 .more{width:100%;background:transparent;border:1px dashed rgba(232,199,122,.25);color:var(--accent);border-radius:16px;min-height:50px;margin-top:2px;font-weight:500}
 .more span{transition:transform .3s var(--ease)}.more:hover span{transform:translateX(4px)}
+.opt{align-items:flex-start;padding:20px 22px!important;gap:18px}
+.opt .t{display:flex;flex-direction:column;gap:8px}
+.opt .olines{margin:0;gap:4px}.opt .ar{color:var(--faint);font-size:.85em;margin:0 2px}
+.opt small{margin:0!important;color:var(--muted)}
+.opt .bestpill{align-self:flex-start;margin:0}
+.opt .m{padding-top:2px}.opt .m .serif{font-size:2.3em}
+.opt .blurb{margin-top:2px}
+.tips{padding:8px 20px!important}
+.tips p{display:flex;gap:12px;margin:12px 0;color:#CFCAC0;line-height:1.5;font-size:.93em}
+.tips p i{flex:none;width:6px;height:6px;margin-top:8px;border-radius:50%;background:linear-gradient(135deg,#F6DC94,#D4A84B);box-shadow:0 0 8px rgba(232,199,122,.6)}
+.tips b{color:#F3DFA6;font-weight:600}
 </style>
 </head>
 <body>
@@ -442,11 +453,22 @@ function options(origins,to,mode='shortest'){
   const all=[];
   for(const o of origins)for(const tp of [40,14,4]){if(o.s===to)continue;const r=route(o.s,to,tp);if(r)all.push({from:o.s,walk:o.walk,r,total:r.mins+o.walk})}
   const seen=new Set(),out=[];all.sort((a,b)=>a.total-b.total);for(const o of all){const k=o.r.segs.map(g=>g.line).join('>');if(!seen.has(k)){seen.add(k);o.scenic=scenicScore(o.r);o.modern=o.r.segs.filter(g=>MODERN.has(g.line)).length;out.push(o)}}
-  const key={shortest:o=>o.total,reliable:o=>o.r.changes*100-o.modern*8+o.total,scenic:o=>-o.scenic*6+o.total}[mode];
+  const key={shortest:o=>o.total+o.r.changes*2,reliable:o=>o.r.changes*100-o.modern*8+o.total,scenic:o=>-o.scenic*6+o.total}[mode];
   out.sort((a,b)=>key(a)-key(b));const top=out.slice(0,3);top.forEach(o=>o.blurb=blurbFor(o,mode));return top}
 function locate(){return new Promise(res=>{let done=false;const fall=why=>{if(!done){done=true;res({...DEMO_LOC,demo:true,why})}};
   try{if(!navigator.geolocation)return fall('unsupported');setTimeout(()=>fall('timeout'),6000);
     navigator.geolocation.getCurrentPosition(p=>{if(!done){done=true;res({lat:p.coords.latitude,lng:p.coords.longitude,label:'Your location'})}},()=>fall('blocked'),{enableHighAccuracy:true,timeout:5500,maximumAge:60000})}catch(e){fall('blocked')}})}
+
+/* Good to know: transfer tips */
+function tipsFor(r){const t=[];
+  r.segs.forEach((g,i)=>{if(!i)return;const prev=r.segs[i-1],at=S[prev.stops[prev.n]],v=g.xferIn;
+    if(v&&v.kind==='walk')t.push(`At <b>${esc(at)}</b>, walk the underground passage to the ${g.line} at ${esc(S[g.stops[0]])}. ${esc(v.note.replace(/\.$/,''))}. You stay inside, no need to exit.`);
+    else t.push(`Change to the ${g.line} at <b>${esc(at)}</b> without leaving the station. Follow the signs on the platform.`)});
+  if(r.changes)t.push('Changing trains inside the station is free. You won\'t tap in again.');
+  const d=LINES[r.segs[0].line][r.segs[0].dir];
+  t.push(`At some local stations, the Uptown and Downtown entrances are on opposite sides of the street. Look for <b>${esc(d.sign)}</b> before you go down.`);
+  return t}
+function xferNote(r){if(!r.changes)return 'One train, no changes';return r.segs.slice(1).some(g=>g.xferIn&&g.xferIn.kind==='walk')?'Transfer by underground passage':'Transfer inside the station'}
 
 /* ===== Vector map — drawn locally, so it works underground ===== */
 const K=4000,CX=Math.cos(40.72*Math.PI/180),LNG0=-74.07,LAT0=40.84;
@@ -535,8 +557,8 @@ function callout(s,line,t1,t2,k){const[x,y]=xy(s);const g=el('g',{class:'pin cal
   if(line){el('circle',{cx:ox+16,cy:-16,r:9,fill:LINES[line].c},g);const b=el('text',{x:ox+16,y:-12.5,'text-anchor':'middle',class:'cl-b',fill:LINES[line].t},g);b.textContent=line}
   const tx=ox+(line?32:12);const a1=el('text',{x:tx,y:-20,class:'cl-1'},g);a1.textContent=t1;const a2=el('text',{x:tx,y:-6,class:'cl-2'},g);a2.textContent=t2;apply()}
 function drawAll(opts,to){clearRoute();svg.classList.add('focus');svg.classList.remove('goldmode');const g=$('#groute');
-  opts.forEach((o,k)=>o.r.segs.forEach(sg=>{const pts=sg.stops.map(s=>xy(s).join(',')).join(' '),c=LINES[sg.line].c;
-    el('polyline',{points:pts,class:'rblink',stroke:c,pathLength:1,style:`--g:${c};animation-delay:${k*.12}s,${.9+k*.33}s`},g)}));
+  opts.slice().reverse().forEach((o,kk)=>{const k=opts.length-1-kk;o.r.segs.forEach(sg=>{const pts=sg.stops.map(s=>xy(s).join(',')).join(' '),c=k===0?'url(#gold)':'url(#silver)';
+    el('polyline',{points:pts,class:'rblink',stroke:c,pathLength:1,style:`--g:${k===0?'#E8C77A':'#C9CED6'};animation-delay:${k*.12}s,${.9+k*.33}s;opacity:${k===0?1:.75}`},g)})});
   const starts=[...new Set(opts.map(o=>o.r.segs[0].stops[0]))];starts.forEach(s=>pin(s,'start'));pin(to,'end');labels([to]);
   fitStations(opts.flatMap(o=>o.r.segs.flatMap(sg=>sg.stops)));apply()}
 function placeTrain(s,instant){let g=$('#train');
@@ -656,10 +678,12 @@ function home(){
   scrollTo({top:0});
 }
 function optCard(o,i,sel,mode){return `<button class="trip opt ${sel?'sel':''} ${i===0?'best':''}" data-i="${i}" style="animation-delay:${i*70}ms">
-   <span class="t"><span class="olines">${i===0?`<span class="bestpill">${{shortest:'Fastest',reliable:'Most reliable',scenic:'Most scenic'}[mode]}</span>`:''}${o.walk?'<span class="wk">🚶 '+o.walk+'</span><span class="ar">›</span>':''}${o.r.segs.map(g=>bullet(g.line)).join('<span class="ar">›</span>')}</span>
-   <small>${o.r.changes?plural(o.r.changes,'change'):'No changes'} · arrive ${eta(o.total)}</small>
-   ${o.blurb?`<span class="blurb">${esc(o.blurb)}</span>`:''}</span>
-   <span class="m"><span class="serif">${o.total}</span><small>min</small></span></button>`}
+   <span class="t">
+     ${i===0?`<span class="bestpill">${{shortest:'Fastest',reliable:'Most reliable',scenic:'Most scenic'}[mode]}</span>`:''}
+     <span class="olines">${o.r.segs.map(g=>bullet(g.line)).join('<span class="ar">→</span>')}</span>
+     <small>From ${esc(S[o.from])} · ${xferNote(o.r)}</small>
+     ${o.blurb?`<span class="blurb">${esc(o.blurb)}</span>`:''}</span>
+   <span class="m"><span class="serif">${o.total}</span><small>min</small><small class="eta">${eta(o.total)}</small></span></button>`}
 let tripMode='shortest';
 function showOptions(get,to,loc){
   let opts=get(tripMode),sel=-1;
@@ -681,7 +705,6 @@ function showOptions(get,to,loc){
 
 function timeline(r,t,walk){
   let rows=[];const row=(cls,name,sub,color)=>`<div class="tl ${cls}"><span class="rail"></span><span class="dot"></span><div class="tlt"><b>${name}</b>${sub?`<div class="tls">${sub}</div>`:''}</div></div>`;
-  if(walk)rows.push(row('walk','You',`Walk ${walk} min to the station`));
   r.segs.forEach((g,i)=>{const d=LINES[g.line][g.dir];
     rows.push(row('key',esc(S[g.stops[0]]),`${i?'Change here · ':''}Take the ${bullet(g.line)} — follow <span class="sign mini">${esc(d.sign)}</span>`));
     const mids=g.stops.slice(1,-1);
@@ -695,7 +718,6 @@ function showTrip(id){
   const t=trips.find(x=>x.id===id);const r=t.opt?t.opt.r:route(t.from,t.to);const walk=t.walk||0;
   if(!r){$('#view').innerHTML=`<button class="back" onclick="home()">← Back</button><div class="card">No route in this prototype yet.</div>`;return}
   let n=0,steps='',d=0;const S2=s=>`<b>${esc(S[s])}</b>`;
-  if(walk)steps+=step(++n,`Walk <b>${walk} min</b> to ${S2(g0(r))} station.`,d+=60);
   r.segs.forEach((g,i)=>{const L=LINES[g.line],dd=L[g.dir];
     if(i===0)steps+=step(++n,`Enter ${S2(g.stops[0])} and follow the sign<br><span class="sign">${bullet(g.line)} ${esc(dd.sign)}</span>`,d+=60);
     else steps+=step(++n,`${g.xferIn.kind==='walk'?`Stay inside. ${esc(g.xferIn.note)} You are now at ${S2(g.stops[0])}.`:'Stay inside the station and change trains.'}<br><span class="sign">${bullet(g.line)} ${esc(dd.sign)}</span>`,d+=60);
@@ -714,9 +736,11 @@ function showTrip(id){
    </div>
    ${liveBox(r.segs[0].stops[0],r.segs[0].line,r.segs[0].dir)}
    ${on?`<a class="linkout" href="${gmaps(t.from,t.to)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>`:''}
+   <h2>Good to know</h2>
+   <div class="card tips">${tipsFor(r).map(x=>`<p><i></i><span>${x}</span></p>`).join('')}</div>
    <h2>Your stations</h2>
    <div class="card" style="padding:18px 18px 8px">${timeline(r,t,walk)}</div>
-   ${id==='quick'?`<button class="ghost full" id="save" style="margin-top:8px">Save this journey</button>`:`<button class="ghost full" id="del" style="margin-top:8px">Remove journey</button>`}`;
+   ${id==='quick'?'':`<button class="textbtn" id="del" style="margin:10px auto 0;display:block">Remove journey</button>`}`;
   $('#bk').onclick=()=>{if(id==='quick'&&qTo){qTo=null}home()};
   if($('#save'))$('#save').onclick=()=>$('#star')&&$('#star').click();
   if($('#del'))$('#del').onclick=()=>{const b=$('#del');if(b.dataset.sure){trips=trips.filter(x=>x.id!==id);saveTrips();home()}else{b.dataset.sure=1;b.textContent='Tap again to remove'}};
